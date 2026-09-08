@@ -21,7 +21,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <a
           href={whatsappUrl(
-            `Hola Magali! Acabo de comprar en AccesoriosMagi. Pedido: ${order ?? ""}`,
+            `Hola! Acabo de comprar en Accesorios Tortugas Online. Pedido: ${order ?? ""}`,
           )}
           target="_blank"
           rel="noreferrer"

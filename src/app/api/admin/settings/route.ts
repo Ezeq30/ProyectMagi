@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { updateStore } from "@/lib/data/store";
+import { dbGetSettings, dbUpdateSettings } from "@/lib/db";
 import type { SiteSettings } from "@/lib/types";
 
 export async function PUT(request: Request) {
@@ -8,13 +8,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = (await request.json()) as SiteSettings;
-  await updateStore((store) => {
-    store.settings = {
-      ...store.settings,
-      ...body,
-      free_shipping_from: Number(body.free_shipping_from),
-      flat_shipping_cost: Number(body.flat_shipping_cost),
-    };
-  });
+  const current = await dbGetSettings();
+  const next: SiteSettings = {
+    ...current,
+    ...body,
+    free_shipping_from: Number(body.free_shipping_from ?? current.free_shipping_from),
+    flat_shipping_cost: Number(body.flat_shipping_cost ?? current.flat_shipping_cost),
+    theme: body.theme ?? current.theme,
+  };
+  await dbUpdateSettings(next);
   return NextResponse.json({ ok: true });
 }

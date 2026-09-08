@@ -10,7 +10,6 @@ import { whatsappUrl } from "@/lib/whatsapp";
 type Quote = {
   shippingCost: number;
   discount: number;
-  freeShippingFrom: number;
   flatShipping: number;
 };
 
@@ -145,7 +144,7 @@ export default function CheckoutPage() {
             cerrarlo por{" "}
             <a
               className="underline"
-              href={whatsappUrl("Hola! Quiero completar mi compra en AccesoriosMagi")}
+              href={whatsappUrl("Hola! Quiero completar mi compra en Accesorios Tortugas Online")}
               target="_blank"
               rel="noreferrer"
             >
@@ -190,11 +189,7 @@ export default function CheckoutPage() {
           </div>
           <div className="flex justify-between">
             <span>Envío</span>
-            <span>
-              {quote?.shippingCost === 0
-                ? "Gratis"
-                : formatPrice(quote?.shippingCost ?? 0)}
-            </span>
+            <span>{formatPrice(quote?.shippingCost ?? 0)}</span>
           </div>
           <div className="flex justify-between text-base font-semibold">
             <span>Total</span>

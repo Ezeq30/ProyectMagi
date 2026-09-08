@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { updateStore } from "@/lib/data/store";
+import { dbUpdateOrderStatus } from "@/lib/db";
 import type { OrderStatus } from "@/lib/types";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -11,9 +11,6 @@ export async function PATCH(request: Request, context: Ctx) {
   }
   const { id } = await context.params;
   const { status } = await request.json();
-  await updateStore((store) => {
-    const order = store.orders.find((o) => o.id === id);
-    if (order) order.status = status as OrderStatus;
-  });
+  await dbUpdateOrderStatus(id, status as OrderStatus);
   return NextResponse.json({ ok: true });
 }

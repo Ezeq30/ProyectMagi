@@ -1,26 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f7f0e8;
-  --bg-deep: #efe4d6;
-  --ink: #2a1f18;
-  --ink-soft: #5c4a3d;
-  --accent: #9a5b3c;
-  --accent-deep: #7a4329;
-  --gold: #c4a574;
-  --line: #d9c7b3;
-  --white: #fffdf9;
-  --success: #2f6b4f;
+  /* Guía de estilo — Lujo minimalista (defaults) */
+  --bg: #f9f6f1;
+  --bg-deep: #efeae2;
+  --card: #ffffff;
+  --card-text: #3a342c;
+  --card-muted: #6b6358;
+  --ink: #3a342c;
+  --ink-soft: #6b6358;
+  --accent: #6b8a7a;
+  --accent-deep: #547064;
+  --gold: #d4af87;
+  --primary: #c2a87d;
+  --line: #e2d5c2;
+  --white: #fffcf7;
+  --success: #6b8a7a;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-bg-deep: var(--bg-deep);
+  --color-card: var(--card);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-accent: var(--accent);
   --color-accent-deep: var(--accent-deep);
   --color-gold: var(--gold);
+  --color-primary: var(--primary);
   --color-line: var(--line);
   --color-white: var(--white);
   --color-success: var(--success);
@@ -42,6 +49,49 @@ body {
   color: var(--ink);
   font-family: var(--font-body), Georgia, serif;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.product-card {
+  background: var(--card);
+  color: var(--card-text);
+}
+
+.nav-link {
+  position: relative;
+  display: inline-block;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  transition: color 0.2s ease;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  bottom: 0.2rem;
+  height: 1.5px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--accent);
+}
+
+.nav-link:hover::after,
+.nav-link-active::after {
+  transform: scaleX(1);
+}
+
+.nav-link-active {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 a {
@@ -57,9 +107,9 @@ img {
 
 .magi-grain {
   background-image:
-    radial-gradient(ellipse at 20% 10%, rgba(196, 165, 116, 0.28), transparent 45%),
-    radial-gradient(ellipse at 90% 20%, rgba(154, 91, 60, 0.12), transparent 40%),
-    linear-gradient(160deg, #f7f0e8 0%, #efe4d6 55%, #f3ebe1 100%);
+    radial-gradient(ellipse at 20% 10%, color-mix(in srgb, var(--sage, var(--accent)) 22%, transparent), transparent 45%),
+    radial-gradient(ellipse at 90% 20%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 40%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 55%, var(--bg) 100%);
 }
 
 .magi-fade-up {
@@ -105,16 +155,24 @@ img {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.85rem 1.4rem;
+  padding: 0.75rem 1.2rem;
   background: var(--accent);
   color: var(--white);
   border: none;
   border-radius: 999px;
   font-family: var(--font-body), sans-serif;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .magi-btn {
+    padding: 0.85rem 1.4rem;
+    font-size: 1rem;
+  }
 }
 
 .magi-btn:hover {

@@ -55,7 +55,7 @@ export function NewsletterForm() {
       </div>
       {status === "ok" && (
         <p className="px-4 pb-6 text-center text-sm text-success">
-          ¡Gracias! Usá el cupón <strong>MAGI15</strong> en el checkout.
+          ¡Gracias! Usá el cupón <strong>TORTUGA15</strong> en el checkout.
         </p>
       )}
       {status === "error" && (

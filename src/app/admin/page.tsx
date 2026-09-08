@@ -1,14 +1,17 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { readStore } from "@/lib/data/store";
+import { dbGetOrders, dbGetProducts } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
+import Link from "next/link";
 
 export default async function AdminDashboard() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
-  const store = await readStore();
-  const paid = store.orders.filter((o) => o.status === "paid").length;
-  const pending = store.orders.filter((o) => o.status === "pending").length;
+  const [orders, products] = await Promise.all([
+    dbGetOrders(),
+    dbGetProducts({ includeInactive: true, activeOnly: false }),
+  ]);
+  const paid = orders.filter((o) => o.status === "paid").length;
+  const pending = orders.filter((o) => o.status === "pending").length;
 
   return (
     <div>
@@ -16,7 +19,7 @@ export default async function AdminDashboard() {
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-line bg-white p-5">
           <p className="text-sm text-ink-soft">Productos</p>
-          <p className="mt-2 text-3xl font-semibold">{store.products.length}</p>
+          <p className="mt-2 text-3xl font-semibold">{products.length}</p>
         </div>
         <div className="rounded-xl border border-line bg-white p-5">
           <p className="text-sm text-ink-soft">Pedidos pendientes</p>
@@ -38,12 +41,12 @@ export default async function AdminDashboard() {
       <div className="mt-10">
         <h2 className="text-xl font-semibold">Últimos pedidos</h2>
         <ul className="mt-4 space-y-2">
-          {store.orders.slice(0, 5).map((o) => (
+          {orders.slice(0, 5).map((o) => (
             <li key={o.id} className="rounded-lg border border-line bg-white px-4 py-3 text-sm">
               {o.order_number} — {o.customer_name} — {formatPrice(o.total)} — {o.status}
             </li>
           ))}
-          {store.orders.length === 0 && (
+          {orders.length === 0 && (
             <p className="text-ink-soft">Todavía no hay pedidos.</p>
           )}
         </ul>

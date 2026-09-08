@@ -30,6 +30,16 @@ export type Product = {
   variants?: ProductVariant[];
 };
 
+export type ThemeColors = {
+  /** Fijos de la guía */
+  primary: string;
+  sage: string;
+  gold: string;
+  /** Elegibles por Magali */
+  background: string;
+  card: string;
+};
+
 export type SiteSettings = {
   free_shipping_from: number;
   flat_shipping_cost: number;
@@ -39,6 +49,7 @@ export type SiteSettings = {
   about_text: string;
   hero_headline: string;
   hero_sub: string;
+  theme: ThemeColors;
 };
 
 export type Coupon = {

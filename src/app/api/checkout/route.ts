@@ -6,7 +6,7 @@ import {
   getCoupon,
   getSettings,
 } from "@/lib/catalog";
-import { updateStore } from "@/lib/data/store";
+import { dbCreateOrder } from "@/lib/db";
 import { createCheckoutPreference, isMercadoPagoConfigured } from "@/lib/mercadopago";
 import type { CartItem, Order } from "@/lib/types";
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const total = Math.max(0, subtotal - discount + shippingCost);
 
     const orderId = randomUUID();
-    const orderNumber = `AM-${Date.now().toString().slice(-8)}`;
+    const orderNumber = `AT-${Date.now().toString().slice(-8)}`;
 
     let mpPreferenceId: string | null = null;
     let initPoint: string | null = null;
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const order: Order = {
       id: orderId,
       order_number: orderNumber,
-      status: initPoint ? "pending" : "pending",
+      status: "pending",
       customer_name: String(body.customer_name),
       customer_email: String(body.customer_email),
       customer_phone: String(body.customer_phone),
@@ -91,18 +91,7 @@ export async function POST(request: Request) {
       })),
     };
 
-    await updateStore((store) => {
-      store.orders.unshift(order);
-      for (const item of items) {
-        const product = store.products.find((p) => p.id === item.productId);
-        if (!product) continue;
-        if (item.variantId && product.variants) {
-          const variant = product.variants.find((v) => v.id === item.variantId);
-          if (variant) variant.stock = Math.max(0, variant.stock - item.quantity);
-        }
-        product.stock = Math.max(0, product.stock - item.quantity);
-      }
-    });
+    await dbCreateOrder(order);
 
     return NextResponse.json({
       orderId,

@@ -14,7 +14,10 @@ export function SettingsForm({ initial }: { initial: SiteSettings }) {
     await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        theme: initial.theme,
+      }),
     });
     setSaved(true);
     router.refresh();
@@ -51,18 +54,7 @@ export function SettingsForm({ initial }: { initial: SiteSettings }) {
       ))}
 
       <label className="block text-sm">
-        <span className="mb-1 block text-ink-soft">Envío gratis desde ($)</span>
-        <input
-          className="magi-input"
-          type="number"
-          value={form.free_shipping_from}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, free_shipping_from: Number(e.target.value) }))
-          }
-        />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-ink-soft">Costo de envío fijo ($)</span>
+        <span className="mb-1 block text-ink-soft">Costo de envío ($)</span>
         <input
           className="magi-input"
           type="number"

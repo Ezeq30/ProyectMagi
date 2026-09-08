@@ -23,9 +23,8 @@ export default async function HowToBuyPage() {
           disponibles.
         </li>
         <li>
-          <strong className="text-ink">4. Envío</strong> — Gratis desde{" "}
-          {formatPrice(settings.free_shipping_from)}. Si no alcanza, el costo es{" "}
-          {formatPrice(settings.flat_shipping_cost)}.
+          <strong className="text-ink">4. Envío</strong> — El costo de envío se calcula en el checkout
+          (desde {formatPrice(settings.flat_shipping_cost)}).
         </li>
         <li>
           <strong className="text-ink">5. Dudas</strong> — Escribinos al{" "}

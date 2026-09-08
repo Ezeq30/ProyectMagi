@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Preference } from "mercadopago";
+import { getSiteUrl } from "./site-url";
 import type { CartItem } from "./types";
 
 export function isMercadoPagoConfigured(): boolean {
@@ -16,14 +17,13 @@ export async function createCheckoutPreference(params: {
   const token = process.env.MP_ACCESS_TOKEN;
   if (!token) return null;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = getSiteUrl();
   const client = new MercadoPagoConfig({ accessToken: token });
   const preference = new Preference(client);
 
   const subtotal = params.items.reduce((s, i) => s + i.price * i.quantity, 0);
   const payableItems = Math.max(0, subtotal - params.discount);
 
-  // Un solo ítem con el total de productos (con descuento) evita precios negativos en MP
   const mpItems: Array<{
     id: string;
     title: string;
@@ -33,7 +33,7 @@ export async function createCheckoutPreference(params: {
   }> = [
     {
       id: params.orderId,
-      title: `Pedido AccesoriosMagi ${params.orderNumber}`,
+      title: `Pedido Accesorios Tortugas ${params.orderNumber}`,
       quantity: 1,
       unit_price: Number(payableItems.toFixed(2)),
       currency_id: "ARS",

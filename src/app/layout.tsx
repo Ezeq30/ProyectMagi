@@ -16,16 +16,20 @@ const body = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    default: "AccesoriosMagi",
-    template: "%s | AccesoriosMagi",
+    default: "Accesorios Tortugas Online",
+    template: "%s | Accesorios Tortugas Online",
   },
   description:
-    "Tienda online de AccesoriosMagi: bijou, carteras y accesorios. Envíos a todo el país y pago con Mercado Pago.",
+    "Accesorios Tortugas Online — bags & handbags: carteras, bolsos y bandoleras. Envíos a todo el país y pago con Mercado Pago.",
   openGraph: {
-    title: "AccesoriosMagi",
-    description: "Bijou, carteras y accesorios seleccionados para vos.",
+    title: "Accesorios Tortugas Online",
+    description: "Bags & handbags seleccionados para vos.",
     locale: "es_AR",
     type: "website",
+  },
+  icons: {
+    icon: "/logo-accesorios-tortugas.jpg",
+    apple: "/logo-accesorios-tortugas.jpg",
   },
 };
 

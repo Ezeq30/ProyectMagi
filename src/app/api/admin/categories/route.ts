@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "crypto";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { updateStore } from "@/lib/data/store";
+import { dbAddCategory } from "@/lib/db";
 import { slugify } from "@/lib/format";
 
 export async function POST(request: Request) {
@@ -11,17 +10,13 @@ export async function POST(request: Request) {
   const { name } = await request.json();
   if (!name) return NextResponse.json({ error: "Falta nombre" }, { status: 400 });
 
-  const category = {
-    id: randomUUID(),
-    name: String(name),
-    slug: slugify(String(name)),
-    parent_id: null as string | null,
-    sort_order: Date.now(),
-  };
-
-  await updateStore((store) => {
-    store.categories.push(category);
-  });
-
-  return NextResponse.json({ category });
+  try {
+    const category = await dbAddCategory(String(name), slugify(String(name)));
+    return NextResponse.json({ category });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Error" },
+      { status: 400 },
+    );
+  }
 }

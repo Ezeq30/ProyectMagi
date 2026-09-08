@@ -3,6 +3,7 @@ import { Footer } from "./Footer";
 import { PromoBanner } from "./PromoBanner";
 import { CartDrawer } from "./CartDrawer";
 import { WhatsAppFloat } from "./WhatsAppFloat";
+import { ThemeStyles } from "./ThemeStyles";
 import { getCategories, getSettings } from "@/lib/catalog";
 
 export async function StoreShell({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,7 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <ThemeStyles theme={settings.theme} />
       <PromoBanner text={settings.promo_banner} />
       <Header categories={categories} />
       <main className="flex-1">{children}</main>

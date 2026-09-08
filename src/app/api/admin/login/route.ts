@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import {
   COOKIE_NAME,
   sessionToken,
-  verifyAdminPassword,
+  verifyAdminCredentials,
 } from "@/lib/admin-auth";
 
 export async function POST(request: Request) {
-  const { password } = await request.json();
-  if (!verifyAdminPassword(String(password ?? ""))) {
+  const body = await request.json();
+  const email = String(body.email ?? "");
+  const password = String(body.password ?? "");
+
+  if (!verifyAdminCredentials(email, password)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

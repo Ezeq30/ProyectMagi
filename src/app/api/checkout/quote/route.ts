@@ -12,7 +12,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     shippingCost,
     discount,
-    freeShippingFrom: settings.free_shipping_from,
     flatShipping: settings.flat_shipping_cost,
     couponApplied: coupon?.code ?? null,
   });

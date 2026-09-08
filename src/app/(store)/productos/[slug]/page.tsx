@@ -29,7 +29,7 @@ export default async function ProductPage({ params }: Props) {
         <Image src={image} alt={product.name} fill className="object-cover" priority sizes="50vw" />
       </div>
       <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-gold">AccesoriosMagi</p>
+        <p className="text-sm uppercase tracking-[0.18em] text-gold">Accesorios Tortugas</p>
         <h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl md:text-5xl">
           {product.name}
         </h1>

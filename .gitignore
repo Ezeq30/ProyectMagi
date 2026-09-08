@@ -30,16 +30,21 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 !.env.example
 
-# local store data
+# local store / uploads
 /data/store.json
 /data/newsletter.json
+/public/uploads/*
+!/public/uploads/.gitkeep
 
 # vercel
 .vercel
+
+# supabase cli temp
+supabase/.temp
 
 # typescript
 *.tsbuildinfo

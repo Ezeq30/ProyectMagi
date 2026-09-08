@@ -6,7 +6,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "placehold.co" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "*.supabase.co", pathname: "/**" },
+      {
+        protocol: "https",
+        hostname: "qaussmsfrffnrcxahtfm.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
+    localPatterns: [{ pathname: "/uploads/**" }],
   },
 };
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,11 +17,11 @@ export default function LoginForm() {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
     setLoading(false);
     if (!res.ok) {
-      setError("Contraseña incorrecta");
+      setError("Email o contraseña incorrectos");
       return;
     }
     router.push("/admin");
@@ -28,20 +29,38 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-xl border border-line bg-white p-8 shadow-sm">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">Admin AccesoriosMagi</h1>
+    <div className="mx-auto max-w-md rounded-xl border border-line bg-white p-6 shadow-sm sm:p-8">
+      <h1 className="font-[family-name:var(--font-display)] text-3xl">
+        Super Admin
+      </h1>
       <p className="mt-2 text-sm text-ink-soft">
-        Ingresá la contraseña de Magali para gestionar la tienda.
+        Accesorios Tortugas Online — mismo usuario en local y en Vercel.
       </p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <input
-          type="password"
-          className="magi-input"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <label className="block text-sm">
+          <span className="mb-1 block text-ink-soft">Email</span>
+          <input
+            type="email"
+            className="magi-input"
+            placeholder="vildozasara10@gmail.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="username"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-ink-soft">Contraseña</span>
+          <input
+            type="password"
+            className="magi-input"
+            placeholder="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </label>
         {error && <p className="text-sm text-accent">{error}</p>}
         <button type="submit" className="magi-btn w-full" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}

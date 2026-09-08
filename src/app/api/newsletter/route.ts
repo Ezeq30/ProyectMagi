@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { dbAddNewsletter } from "@/lib/db";
+import { useSupabaseData } from "@/lib/supabase/admin";
 
 const FILE = path.join(process.cwd(), "data", "newsletter.json");
 
@@ -10,19 +12,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email inválido" }, { status: 400 });
   }
 
-  let list: string[] = [];
-  try {
-    list = JSON.parse(await fs.readFile(FILE, "utf8")) as string[];
-  } catch {
-    list = [];
-  }
-
   const normalized = email.trim().toLowerCase();
-  if (!list.includes(normalized)) {
-    list.push(normalized);
-    await fs.mkdir(path.dirname(FILE), { recursive: true });
-    await fs.writeFile(FILE, JSON.stringify(list, null, 2), "utf8");
+
+  if (useSupabaseData()) {
+    await dbAddNewsletter(normalized);
+  } else {
+    let list: string[] = [];
+    try {
+      list = JSON.parse(await fs.readFile(FILE, "utf8")) as string[];
+    } catch {
+      list = [];
+    }
+    if (!list.includes(normalized)) {
+      list.push(normalized);
+      await fs.mkdir(path.dirname(FILE), { recursive: true });
+      await fs.writeFile(FILE, JSON.stringify(list, null, 2), "utf8");
+    }
   }
 
-  return NextResponse.json({ ok: true, coupon: "MAGI15" });
+  return NextResponse.json({ ok: true, coupon: "TORTUGA15" });
 }

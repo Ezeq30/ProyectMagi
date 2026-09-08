@@ -1,7 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { slugify } from "@/lib/format";
 import type { Category, Product } from "@/lib/types";
 
 type Props = {
@@ -11,8 +13,11 @@ type Props = {
 
 export function ProductForm({ product, categories }: Props) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [images, setImages] = useState<string[]>(product?.images ?? []);
   const [form, setForm] = useState({
     name: product?.name ?? "",
     slug: product?.slug ?? "",
@@ -20,18 +25,39 @@ export function ProductForm({ product, categories }: Props) {
     price: product?.price?.toString() ?? "",
     compare_at: product?.compare_at?.toString() ?? "",
     stock: product?.stock?.toString() ?? "0",
-    images: product?.images?.join("\n") ?? "",
     category_id: product?.category_id ?? "",
     featured: product?.featured ?? false,
     bestseller: product?.bestseller ?? false,
     active: product?.active ?? true,
   });
 
-  useEffect(() => {
-    if (!product && form.name && !form.slug) {
-      // leave slug manual
+  const canAutoSlug = useMemo(() => !product, [product]);
+
+  async function onPickFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setUploading(true);
+    setError("");
+    try {
+      const data = new FormData();
+      Array.from(fileList).forEach((file) => data.append("files", file));
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: data,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Error al subir");
+      setImages((prev) => [...prev, ...(json.urls as string[])]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo subir la imagen");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
-  }, [form.name, form.slug, product]);
+  }
+
+  function removeImage(url: string) {
+    setImages((prev) => prev.filter((img) => img !== url));
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -39,15 +65,12 @@ export function ProductForm({ product, categories }: Props) {
     setError("");
     const payload = {
       name: form.name,
-      slug: form.slug,
+      slug: form.slug || slugify(form.name),
       description: form.description,
       price: Number(form.price),
       compare_at: form.compare_at ? Number(form.compare_at) : null,
       stock: Number(form.stock),
-      images: form.images
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      images,
       category_id: form.category_id || null,
       featured: form.featured,
       bestseller: form.bestseller,
@@ -82,10 +105,25 @@ export function ProductForm({ product, categories }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="max-w-2xl space-y-4 rounded-xl border border-line bg-white p-6">
+      <label className="block text-sm">
+        <span className="mb-1 block text-ink-soft">Nombre</span>
+        <input
+          className="magi-input"
+          required
+          value={form.name}
+          onChange={(e) => {
+            const name = e.target.value;
+            setForm((f) => ({
+              ...f,
+              name,
+              slug: canAutoSlug ? slugify(name) : f.slug || slugify(name),
+            }));
+          }}
+        />
+      </label>
+
       {(
         [
-          ["name", "Nombre"],
-          ["slug", "Slug (url)"],
           ["price", "Precio"],
           ["compare_at", "Precio anterior (opcional)"],
           ["stock", "Stock"],
@@ -95,7 +133,8 @@ export function ProductForm({ product, categories }: Props) {
           <span className="mb-1 block text-ink-soft">{label}</span>
           <input
             className="magi-input"
-            required={key === "name" || key === "slug" || key === "price" || key === "stock"}
+            type="number"
+            required={key === "price" || key === "stock"}
             value={form[key]}
             onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
           />
@@ -111,14 +150,68 @@ export function ProductForm({ product, categories }: Props) {
         />
       </label>
 
-      <label className="block text-sm">
-        <span className="mb-1 block text-ink-soft">Imágenes (una URL por línea)</span>
-        <textarea
-          className="magi-input min-h-24"
-          value={form.images}
-          onChange={(e) => setForm((f) => ({ ...f, images: e.target.value }))}
+      <div className="space-y-3">
+        <p className="text-sm text-ink-soft">Fotos del producto</p>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="magi-btn"
+            disabled={uploading}
+            onClick={() => fileRef.current?.click()}
+          >
+            {uploading ? "Subiendo..." : "Elegir de galería / archivo"}
+          </button>
+          <p className="self-center text-xs text-ink-soft">
+            JPG, PNG o WEBP · hasta 8MB · podés elegir varias
+          </p>
+        </div>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="sr-only"
+          onChange={(e) => onPickFiles(e.target.files)}
         />
-      </label>
+
+        {images.length > 0 ? (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {images.map((url) => (
+              <li
+                key={url}
+                className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-bg-deep"
+              >
+                <Image
+                  src={url}
+                  alt="Foto producto"
+                  fill
+                  className="object-cover"
+                  sizes="160px"
+                  unoptimized={url.startsWith("data:")}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(url)}
+                  className="absolute right-2 top-2 rounded-full bg-ink/80 px-2 py-1 text-xs text-white"
+                >
+                  Quitar
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-bg-deep/50 px-4 py-10 text-sm text-ink-soft hover:border-accent hover:text-accent"
+          >
+            <span className="text-base font-medium text-ink">Agregar fotos</span>
+            <span>Abrí la galería o seleccioná un archivo de tu dispositivo</span>
+          </button>
+        )}
+      </div>
 
       <label className="block text-sm">
         <span className="mb-1 block text-ink-soft">Categoría</span>
@@ -158,7 +251,7 @@ export function ProductForm({ product, categories }: Props) {
       {error && <p className="text-sm text-accent">{error}</p>}
 
       <div className="flex flex-wrap gap-3">
-        <button type="submit" className="magi-btn" disabled={loading}>
+        <button type="submit" className="magi-btn" disabled={loading || uploading}>
           {loading ? "Guardando..." : "Guardar"}
         </button>
         {product && (

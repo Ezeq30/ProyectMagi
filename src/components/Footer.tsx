@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 import { whatsappUrl } from "@/lib/whatsapp";
 import type { Category, SiteSettings } from "@/lib/types";
 
@@ -9,13 +10,11 @@ type Props = {
 
 export function Footer({ categories, settings }: Props) {
   return (
-    <footer className="mt-auto border-t border-line bg-[#2a1f18] text-[#f7f0e8]">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
+    <footer className="mt-auto border-t border-line bg-[#3a342c] text-[#f7f4ef]">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:py-14 md:grid-cols-3">
         <div>
-          <p className="font-[family-name:var(--font-display)] text-3xl">
-            AccesoriosMagi
-          </p>
-          <p className="mt-3 text-sm text-[#d9c7b3] leading-relaxed">
+          <BrandLogo variant="horizontal" inverted />
+          <p className="mt-5 text-sm text-[#d8d0c4] leading-relaxed">
             {settings.about_text}
           </p>
         </div>
@@ -41,7 +40,9 @@ export function Footer({ categories, settings }: Props) {
           <ul className="mt-4 space-y-2 text-sm">
             <li>
               <a
-                href={whatsappUrl("Hola Magali! Quiero consultar por AccesoriosMagi")}
+                href={whatsappUrl(
+                  "Hola! Quiero consultar por Accesorios Tortugas Online",
+                )}
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-gold"
@@ -62,8 +63,9 @@ export function Footer({ categories, settings }: Props) {
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-[#d9c7b3]">
-        Copyright AccesoriosMagi — {new Date().getFullYear()}. Todos los derechos reservados.
+      <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-[#d8d0c4]">
+        Copyright Accesorios Tortugas Online — {new Date().getFullYear()}. Todos los
+        derechos reservados.
       </div>
     </footer>
   );

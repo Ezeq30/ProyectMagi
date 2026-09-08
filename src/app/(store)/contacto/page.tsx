@@ -10,7 +10,7 @@ export default function ContactPage() {
         ¿Consultas por un producto, envíos o venta mayorista? Magali te responde por WhatsApp.
       </p>
       <a
-        href={whatsappUrl("Hola Magali! Quiero consultar por AccesoriosMagi")}
+        href={whatsappUrl("Hola! Quiero consultar por Accesorios Tortugas Online")}
         target="_blank"
         rel="noreferrer"
         className="magi-btn mt-8 inline-flex"

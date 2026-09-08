@@ -1,14 +1,19 @@
-import { readStore } from "./data/store";
+import {
+  dbGetCategories,
+  dbGetCoupon,
+  dbGetProductById,
+  dbGetProductBySlug,
+  dbGetProducts,
+  dbGetSettings,
+} from "./db";
 import type { Category, Coupon, Product, SiteSettings } from "./types";
 
 export async function getSettings(): Promise<SiteSettings> {
-  const store = await readStore();
-  return store.settings;
+  return dbGetSettings();
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const store = await readStore();
-  return [...store.categories].sort((a, b) => a.sort_order - b.sort_order);
+  return dbGetCategories();
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
@@ -22,41 +27,25 @@ export async function getProducts(options?: {
   bestseller?: boolean;
   activeOnly?: boolean;
 }): Promise<Product[]> {
-  const store = await readStore();
-  let products = store.products;
-  const activeOnly = options?.activeOnly ?? true;
-  if (activeOnly) products = products.filter((p) => p.active);
-  if (options?.categoryId) {
-    products = products.filter((p) => p.category_id === options.categoryId);
-  }
-  if (options?.featured) products = products.filter((p) => p.featured);
-  if (options?.bestseller) products = products.filter((p) => p.bestseller);
-  return products;
+  return dbGetProducts(options);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const store = await readStore();
-  return store.products.find((p) => p.slug === slug && p.active) ?? null;
+  return dbGetProductBySlug(slug);
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const store = await readStore();
-  return store.products.find((p) => p.id === id) ?? null;
+  return dbGetProductById(id);
 }
 
 export async function getCoupon(code: string): Promise<Coupon | null> {
-  const store = await readStore();
-  const coupon = store.coupons.find(
-    (c) => c.code.toLowerCase() === code.toLowerCase() && c.active,
-  );
-  return coupon ?? null;
+  return dbGetCoupon(code);
 }
 
 export function calcShipping(
-  subtotal: number,
+  _subtotal: number,
   settings: SiteSettings,
 ): number {
-  if (subtotal >= settings.free_shipping_from) return 0;
   return settings.flat_shipping_cost;
 }
 

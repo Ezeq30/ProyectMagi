@@ -9,9 +9,8 @@ export default async function AboutPage() {
       <h1 className="font-[family-name:var(--font-display)] text-5xl">{settings.about_title}</h1>
       <p className="mt-6 text-lg leading-relaxed text-ink-soft">{settings.about_text}</p>
       <p className="mt-6 leading-relaxed text-ink-soft">
-        AccesoriosMagi nace para acercarte piezas con onda: bijou, carteras y complementos pensados
-        para el día a día. Comprás online, pagás con Mercado Pago y nos escribís por WhatsApp cuando
-        necesites una mano.
+        Accesorios Tortugas Online nace para acercarte carteras, bolsos y bandoleras con estilo.
+        Comprás online, pagás con Mercado Pago y nos escribís por WhatsApp cuando necesites una mano.
       </p>
     </div>
   );

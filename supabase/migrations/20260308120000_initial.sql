@@ -1,4 +1,4 @@
--- AccesoriosMagi initial schema
+-- Accesorios Tortugas Online initial schema
 create extension if not exists "pgcrypto";
 
 -- Admin check via app_metadata.role = 'admin'
@@ -104,14 +104,14 @@ create table public.coupons (
 
 create table public.site_settings (
   id int primary key default 1 check (id = 1),
-  free_shipping_from numeric(12,2) not null default 40000,
+  free_shipping_from numeric(12,2) not null default 0,
   flat_shipping_cost numeric(12,2) not null default 4500,
   whatsapp text not null default '5491135787669',
-  promo_banner text not null default 'ENVÍO GRATIS superando $40.000 | Consultanos por WhatsApp',
-  about_title text not null default 'Accesorios con estilo',
-  about_text text not null default 'Somos AccesoriosMagi: accesorios, bijou y regalos pensados para acompañarte todos los días.',
-  hero_headline text not null default 'Tu estilo, en cada detalle',
-  hero_sub text not null default 'Bijou, carteras y accesorios seleccionados para vos.',
+  promo_banner text not null default 'Lujo minimalista · Elegante y natural | Consultanos por WhatsApp',
+  about_title text not null default 'Elegante y natural',
+  about_text text not null default 'Somos Accesorios Tortugas Online: carteras, bolsos, mochilas, bijou y vasos para acompañarte todos los días.',
+  hero_headline text not null default 'Accesorios con estilo propio',
+  hero_sub text not null default 'Carteras, bolsos, mochilas, bijou y vasos — lujo minimalista.',
   updated_at timestamptz not null default now()
 );
 

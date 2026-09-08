@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { updateStore } from "@/lib/data/store";
+import { dbUpdateOrderPayment } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
@@ -28,16 +28,11 @@ export async function POST(request: Request) {
     const status = payment.status;
 
     if (orderId) {
-      await updateStore((store) => {
-        const order = store.orders.find(
-          (o) => o.id === orderId || o.order_number === orderId,
-        );
-        if (!order) return;
-        order.mp_payment_id = String(paymentId);
-        if (status === "approved") order.status = "paid";
-        if (status === "rejected" || status === "cancelled") order.status = "cancelled";
-        if (status === "refunded") order.status = "refunded";
-      });
+      let orderStatus: "paid" | "cancelled" | "refunded" | "pending" = "pending";
+      if (status === "approved") orderStatus = "paid";
+      if (status === "rejected" || status === "cancelled") orderStatus = "cancelled";
+      if (status === "refunded") orderStatus = "refunded";
+      await dbUpdateOrderPayment(String(orderId), String(paymentId), orderStatus);
     }
 
     return NextResponse.json({ ok: true });

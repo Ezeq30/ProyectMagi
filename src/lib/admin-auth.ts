@@ -3,24 +3,31 @@ import { createHash, timingSafeEqual } from "crypto";
 
 const COOKIE_NAME = "magi_admin_session";
 
-function hashPassword(password: string): string {
-  const salt = process.env.ADMIN_PASSWORD_SALT ?? "accesorios-magi";
-  return createHash("sha256").update(`${salt}:${password}`).digest("hex");
+function hash(value: string): string {
+  const salt = process.env.ADMIN_PASSWORD_SALT ?? "accesorios-tortugas";
+  return createHash("sha256").update(`${salt}:${value}`).digest("hex");
+}
+
+export function getAdminEmail(): string {
+  return (process.env.ADMIN_EMAIL ?? "vildozasara10@gmail.com").trim().toLowerCase();
 }
 
 export function getAdminPassword(): string {
-  return process.env.ADMIN_PASSWORD ?? "magiadmin";
+  return process.env.ADMIN_PASSWORD ?? "Maitena1";
 }
 
-export function verifyAdminPassword(password: string): boolean {
-  const expected = Buffer.from(hashPassword(getAdminPassword()));
-  const provided = Buffer.from(hashPassword(password));
-  if (expected.length !== provided.length) return false;
-  return timingSafeEqual(expected, provided);
+export function verifyAdminCredentials(email: string, password: string): boolean {
+  const emailOk =
+    email.trim().toLowerCase() === getAdminEmail();
+  const expected = Buffer.from(hash(getAdminPassword()));
+  const provided = Buffer.from(hash(password));
+  const passwordOk =
+    expected.length === provided.length && timingSafeEqual(expected, provided);
+  return emailOk && passwordOk;
 }
 
 export function sessionToken(): string {
-  return hashPassword(`session:${getAdminPassword()}`);
+  return hash(`session:${getAdminEmail()}:${getAdminPassword()}`);
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {

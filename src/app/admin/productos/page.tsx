@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { readStore } from "@/lib/data/store";
+import { dbGetProducts } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
 
 export default async function AdminProductsPage() {
   if (!(await isAdminAuthenticated())) redirect("/admin/login");
-  const store = await readStore();
+  const products = await dbGetProducts({ includeInactive: true, activeOnly: false });
 
   return (
     <div>
@@ -28,7 +28,7 @@ export default async function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {store.products.map((p) => (
+            {products.map((p) => (
               <tr key={p.id} className="border-b border-line/70">
                 <td className="px-4 py-3">{p.name}</td>
                 <td className="px-4 py-3">{formatPrice(p.price)}</td>
@@ -41,6 +41,13 @@ export default async function AdminProductsPage() {
                 </td>
               </tr>
             ))}
+            {products.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-ink-soft">
+                  Todavía no hay productos. Creá el primero.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
