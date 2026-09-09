@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { dbDeleteProduct, dbUpsertProduct } from "@/lib/db";
+import { dbDeleteProduct, dbSetProductColors, dbUpsertProduct } from "@/lib/db";
 import { slugify } from "@/lib/format";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -12,6 +12,25 @@ async function guard() {
   return null;
 }
 
+function parseColors(raw: unknown): { value: string; stock: number }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (typeof item === "string") {
+        return { value: item.trim(), stock: 0 };
+      }
+      if (item && typeof item === "object") {
+        const row = item as { value?: unknown; stock?: unknown };
+        return {
+          value: String(row.value ?? "").trim(),
+          stock: Math.max(0, Number(row.stock) || 0),
+        };
+      }
+      return { value: "", stock: 0 };
+    })
+    .filter((c) => c.value);
+}
+
 export async function PUT(request: Request, context: Ctx) {
   const denied = await guard();
   if (denied) return denied;
@@ -19,6 +38,8 @@ export async function PUT(request: Request, context: Ctx) {
   const body = await request.json();
 
   try {
+    const colors = parseColors(body.colors);
+    const stockFromColors = colors.reduce((s, c) => s + c.stock, 0);
     await dbUpsertProduct({
       id,
       name: String(body.name),
@@ -26,13 +47,16 @@ export async function PUT(request: Request, context: Ctx) {
       description: String(body.description ?? ""),
       price: Number(body.price),
       compare_at: body.compare_at != null ? Number(body.compare_at) : null,
-      stock: Number(body.stock ?? 0),
-      images: Array.isArray(body.images) ? body.images.map(String) : [],
+      stock: colors.length ? stockFromColors : Number(body.stock ?? 0),
+      images: Array.isArray(body.images)
+        ? body.images.map(String).slice(0, 5)
+        : [],
       category_id: body.category_id || null,
       featured: Boolean(body.featured),
       bestseller: Boolean(body.bestseller),
       active: body.active !== false,
     });
+    await dbSetProductColors(id, colors);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json(

@@ -5,10 +5,25 @@ import {
   calcShipping,
   getCoupon,
   getSettings,
+  type ShippingMethod,
 } from "@/lib/catalog";
 import { dbCreateOrder } from "@/lib/db";
-import { createCheckoutPreference, isMercadoPagoConfigured } from "@/lib/mercadopago";
+import { isMercadoPagoReady } from "@/lib/mercadopago";
+import {
+  calcCashDiscount,
+  CASH_DISCOUNT_PERCENT,
+  hasTransferPayment,
+  type CheckoutPaymentMethod,
+} from "@/lib/payment";
 import type { CartItem, Order } from "@/lib/types";
+
+function parseShippingMethod(value: unknown): ShippingMethod {
+  return value === "seller_arrange" ? "seller_arrange" : "delivery";
+}
+
+function parsePaymentMethod(value: unknown): CheckoutPaymentMethod {
+  return value === "cash" ? "cash" : "mercadopago";
+}
 
 export async function POST(request: Request) {
   try {
@@ -18,13 +33,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Carrito vacío" }, { status: 400 });
     }
 
+    const shippingMethod = parseShippingMethod(body.shippingMethod);
+    const paymentMethod = parsePaymentMethod(body.paymentMethod);
+    const arrangeWithSeller = shippingMethod === "seller_arrange";
+    const payCash = paymentMethod === "cash";
+
     const required = [
       "customer_name",
       "customer_email",
       "customer_phone",
-      "shipping_address",
-      "shipping_city",
-      "shipping_postal",
+      ...(arrangeWithSeller
+        ? []
+        : (["shipping_address", "shipping_city", "shipping_postal"] as const)),
     ] as const;
 
     for (const key of required) {
@@ -36,30 +56,33 @@ export async function POST(request: Request) {
     const settings = await getSettings();
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const coupon = body.coupon ? await getCoupon(String(body.coupon)) : null;
-    const discount = calcDiscount(subtotal, coupon);
-    const shippingCost = calcShipping(Math.max(0, subtotal - discount), settings);
+    const cashDiscount = calcCashDiscount(subtotal, paymentMethod);
+    const afterCash = Math.max(0, subtotal - cashDiscount);
+    const couponDiscount = calcDiscount(afterCash, coupon);
+    const discount = cashDiscount + couponDiscount;
+    const shippingCost = calcShipping(
+      Math.max(0, afterCash - couponDiscount),
+      settings,
+      shippingMethod,
+    );
     const total = Math.max(0, subtotal - discount + shippingCost);
 
     const orderId = randomUUID();
     const orderNumber = `AT-${Date.now().toString().slice(-8)}`;
 
-    let mpPreferenceId: string | null = null;
-    let initPoint: string | null = null;
+    const mpReady = await isMercadoPagoReady();
+    const transfer = hasTransferPayment(settings);
+    // Efectivo siempre tiene pantalla de pago (coordinar por WhatsApp)
+    const payPage = payCash || mpReady || transfer;
 
-    if (isMercadoPagoConfigured()) {
-      const pref = await createCheckoutPreference({
-        orderId,
-        orderNumber,
-        items,
-        shippingCost,
-        discount,
-        payerEmail: String(body.customer_email),
-      });
-      if (pref) {
-        mpPreferenceId = pref.id;
-        initPoint = pref.init_point;
-      }
-    }
+    const userNotes = String(body.notes ?? "").trim();
+    const paymentNote = payCash
+      ? `Pago: efectivo (${CASH_DISCOUNT_PERCENT}% de descuento).`
+      : "Pago: Mercado Pago.";
+    const shippingNote = arrangeWithSeller
+      ? "Envío: a coordinar con el vendedor (sin cargo de envío)."
+      : "";
+    const notes = [paymentNote, shippingNote, userNotes].filter(Boolean).join("\n");
 
     const order: Order = {
       id: orderId,
@@ -68,22 +91,27 @@ export async function POST(request: Request) {
       customer_name: String(body.customer_name),
       customer_email: String(body.customer_email),
       customer_phone: String(body.customer_phone),
-      shipping_address: String(body.shipping_address),
-      shipping_city: String(body.shipping_city),
-      shipping_postal: String(body.shipping_postal),
+      shipping_address: arrangeWithSeller
+        ? "A coordinar con el vendedor"
+        : String(body.shipping_address),
+      shipping_city: arrangeWithSeller
+        ? "A coordinar"
+        : String(body.shipping_city),
+      shipping_postal: arrangeWithSeller ? "-" : String(body.shipping_postal),
       shipping_cost: shippingCost,
       subtotal,
       discount,
       total,
       coupon_code: coupon?.code ?? null,
-      mp_preference_id: mpPreferenceId,
+      mp_preference_id: null,
       mp_payment_id: null,
-      notes: String(body.notes ?? ""),
+      notes,
       created_at: new Date().toISOString(),
       items: items.map((item) => ({
         id: randomUUID(),
         product_id: item.productId,
         product_name: item.name,
+        variant_id: item.variantId ?? null,
         variant_label: item.variantLabel ?? null,
         unit_price: item.price,
         quantity: item.quantity,
@@ -96,9 +124,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       orderId,
       orderNumber,
-      init_point: initPoint,
-      demo: !initPoint,
+      init_point: null,
+      transfer,
+      payPage,
+      demo: !payPage,
       total,
+      shippingMethod,
+      paymentMethod,
     });
   } catch (error) {
     console.error(error);

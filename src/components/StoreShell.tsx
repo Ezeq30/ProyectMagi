@@ -4,13 +4,14 @@ import { PromoBanner } from "./PromoBanner";
 import { CartDrawer } from "./CartDrawer";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 import { ThemeStyles } from "./ThemeStyles";
+import { ThemeProvider } from "./ThemeProvider";
 import { getCategories, getSettings } from "@/lib/catalog";
 
 export async function StoreShell({ children }: { children: React.ReactNode }) {
   const [categories, settings] = await Promise.all([getCategories(), getSettings()]);
 
   return (
-    <>
+    <ThemeProvider>
       <ThemeStyles theme={settings.theme} />
       <PromoBanner text={settings.promo_banner} />
       <Header categories={categories} />
@@ -18,6 +19,6 @@ export async function StoreShell({ children }: { children: React.ReactNode }) {
       <Footer categories={categories} settings={settings} />
       <CartDrawer />
       <WhatsAppFloat />
-    </>
+    </ThemeProvider>
   );
 }

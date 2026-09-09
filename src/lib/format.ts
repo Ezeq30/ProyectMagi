@@ -16,6 +16,3 @@ export function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-export function installmentAmount(price: number, cuotas = 3): string {
-  return formatPrice(Math.round((price / cuotas) * 100) / 100);
-}

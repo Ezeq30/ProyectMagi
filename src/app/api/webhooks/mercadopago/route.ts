@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { dbUpdateOrderPayment } from "@/lib/db";
+import { resolveMpAccessToken } from "@/lib/mercadopago";
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    const token = process.env.MP_ACCESS_TOKEN;
+    const token = await resolveMpAccessToken();
     if (!token) {
       return NextResponse.json({ ok: true, demo: true });
     }

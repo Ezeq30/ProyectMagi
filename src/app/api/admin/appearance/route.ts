@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { dbGetSettings, dbUpdateSettings } from "@/lib/db";
+import { dbGetSettings, dbSetHeroSlides, dbUpdateSettings } from "@/lib/db";
 import { DEFAULT_THEME } from "@/lib/theme";
 import type { ThemeColors } from "@/lib/types";
 
@@ -18,5 +18,15 @@ export async function PUT(request: Request) {
   };
 
   await dbUpdateSettings({ ...current, theme });
-  return NextResponse.json({ ok: true, theme });
+
+  let heroSlides = current.hero_slides;
+  if (Array.isArray(body.hero_slides)) {
+    heroSlides = (body.hero_slides as unknown[])
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    await dbSetHeroSlides(heroSlides);
+  }
+
+  return NextResponse.json({ ok: true, theme, hero_slides: heroSlides });
 }

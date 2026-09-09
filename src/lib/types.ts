@@ -49,6 +49,14 @@ export type SiteSettings = {
   about_text: string;
   hero_headline: string;
   hero_sub: string;
+  /** Alias de Mercado Pago (ej: tortugas.mp) */
+  payment_alias: string;
+  /** CBU / CVU para transferencias */
+  payment_cbu: string;
+  /** Titular de la cuenta */
+  payment_holder: string;
+  /** URLs de imágenes del slider del hero (máx. 8) */
+  hero_slides: string[];
   theme: ThemeColors;
 };
 
@@ -67,6 +75,7 @@ export type OrderItem = {
   id: string;
   product_id: string | null;
   product_name: string;
+  variant_id?: string | null;
   variant_label: string | null;
   unit_price: number;
   quantity: number;

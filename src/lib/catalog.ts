@@ -42,11 +42,22 @@ export async function getCoupon(code: string): Promise<Coupon | null> {
   return dbGetCoupon(code);
 }
 
+export type ShippingMethod = "delivery" | "seller_arrange";
+
 export function calcShipping(
-  _subtotal: number,
+  subtotal: number,
   settings: SiteSettings,
+  method: ShippingMethod = "delivery",
 ): number {
-  return settings.flat_shipping_cost;
+  // Coordinación con el vendedor: sin cargo de envío en el checkout
+  if (method === "seller_arrange") {
+    return 0;
+  }
+  const threshold = Number(settings.free_shipping_from) || 0;
+  if (threshold > 0 && subtotal >= threshold) {
+    return 0;
+  }
+  return Math.max(0, Number(settings.flat_shipping_cost) || 0);
 }
 
 export function calcDiscount(subtotal: number, coupon: Coupon | null): number {

@@ -2,12 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/format";
+import { calcCashDiscount, CASH_DISCOUNT_PERCENT } from "@/lib/payment";
 
 export default function CartPage() {
-  const { items, setQuantity, removeItem, subtotal } = useCart();
-  const total = subtotal();
+  const {
+    items,
+    setQuantity,
+    removeItem,
+    subtotal,
+    paymentMethod,
+    setPaymentMethod,
+  } = useCart();
+  const listTotal = subtotal();
+  const cashOff = calcCashDiscount(listTotal, paymentMethod);
+  const payable = Math.max(0, listTotal - cashOff);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -73,9 +84,21 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <div className="flex flex-col items-end gap-3">
+          <div className="rounded-xl border border-line bg-white p-4">
+            <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
+            <p className="text-sm text-ink-soft">
+              Subtotal: {formatPrice(listTotal)}
+            </p>
+            {cashOff > 0 && (
+              <p className="text-sm text-ink-soft">
+                Dto. efectivo ({CASH_DISCOUNT_PERCENT}%): -{formatPrice(cashOff)}
+              </p>
+            )}
             <p className="text-lg">
-              Subtotal: <strong>{formatPrice(total)}</strong>
+              Total: <strong>{formatPrice(payable)}</strong>
             </p>
             <Link href="/checkout" className="magi-btn">
               Finalizar compra

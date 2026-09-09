@@ -12,7 +12,13 @@ const nextConfig: NextConfig = {
         pathname: "/storage/v1/object/public/**",
       },
     ],
-    localPatterns: [{ pathname: "/uploads/**" }],
+    localPatterns: [
+      { pathname: "/uploads/**" },
+      { pathname: "/brand/**" },
+      { pathname: "/hero/**" },
+      { pathname: "/favicon-32.png" },
+      { pathname: "/apple-touch-icon.png" },
+    ],
   },
 };
 

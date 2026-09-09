@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
-import { NewsletterForm } from "@/components/NewsletterForm";
+import { HeroSlider } from "@/components/HeroSlider";
 import { ProductGrid } from "@/components/ProductGrid";
+import { Reveal } from "@/components/Reveal";
 import { getCategories, getProducts, getSettings } from "@/lib/catalog";
 
 export default async function HomePage() {
@@ -12,118 +14,134 @@ export default async function HomePage() {
   ]);
 
   const mainCategories = categories.filter((c) => c.slug !== "rebajas");
+  const aboutImage =
+    settings.hero_slides[0] ?? "/hero/lima-backpack.jpg";
 
   return (
     <>
-      <section className="magi-grain relative min-h-[70vh] sm:min-h-[80vh] md:min-h-[88vh] overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1590874103328-eac38a67437a?auto=format&fit=crop&w=1800&q=80)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(90deg, color-mix(in srgb, var(--bg) 95%, transparent), color-mix(in srgb, var(--bg) 75%, transparent), transparent)",
-          }}
-        />
-        <div className="relative mx-auto flex min-h-[70vh] sm:min-h-[80vh] md:min-h-[88vh] max-w-6xl flex-col justify-center px-4 py-14 sm:py-20">
-          <p className="magi-fade-up text-[11px] sm:text-sm uppercase tracking-[0.28em] text-accent">
+      <section className="grid grid-cols-1 lg:min-h-[calc(100svh-7rem)] lg:grid-cols-2">
+        <div className="order-2 flex flex-col justify-center bg-bg px-4 py-10 sm:px-10 sm:py-16 lg:order-1 lg:px-14 xl:px-20">
+          <p className="magi-fade-up text-[10px] font-semibold uppercase tracking-[0.2em] text-gold sm:text-[11px] sm:tracking-[0.28em]">
             Accesorios Tortugas Online
           </p>
-          <h1 className="magi-fade-up-delay mt-3 sm:mt-4 max-w-2xl font-[family-name:var(--font-display)] text-4xl leading-[1.05] sm:text-5xl md:text-7xl">
+          <h1 className="magi-fade-up-delay mt-3 max-w-xl font-[family-name:var(--font-display)] text-[2rem] leading-[1.08] tracking-tight text-ink sm:mt-4 sm:text-5xl md:text-6xl lg:text-[3.75rem] lg:leading-[1.05]">
             {settings.hero_headline}
           </h1>
-          <p className="magi-fade-up-delay-2 mt-4 sm:mt-5 max-w-md text-base sm:text-lg text-ink-soft">
+          <p className="magi-fade-up-delay-2 mt-4 max-w-md text-[0.95rem] leading-relaxed text-ink-soft sm:mt-5 sm:text-lg">
             {settings.hero_sub}
           </p>
-          <div className="magi-fade-up-delay-2 mt-6 sm:mt-8 flex flex-wrap gap-3">
-            <Link href="/productos" className="magi-btn">
+          <div className="magi-fade-up-delay-2 mt-7 flex w-full flex-col gap-2.5 sm:mt-8 sm:flex-row sm:flex-wrap sm:gap-3">
+            <Link href="/productos" className="magi-btn w-full justify-center sm:w-auto">
               Ver productos
             </Link>
-            <Link href="/categoria/carteras" className="magi-btn magi-btn-outline">
-              Ver carteras
+            <Link href="/como-comprar" className="magi-btn magi-btn-outline w-full justify-center sm:w-auto">
+              Cómo comprar
             </Link>
           </div>
         </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-3xl md:text-4xl">
-          Categorías
-        </h2>
-        <p className="mt-2 text-sm sm:text-base text-ink-soft">
-          Carteras, bolsos, mochilas, bijou, vasos y más.
-        </p>
-        <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {mainCategories.map((c) => (
-            <Link
-              key={c.id}
-              href={`/categoria/${c.slug}`}
-              className="product-card flex min-h-20 sm:min-h-24 items-center justify-center rounded-xl border border-line/60 px-3 py-5 text-center text-xs sm:text-sm font-medium tracking-wide transition hover:border-accent hover:text-accent"
-            >
-              {c.name}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <ProductGrid title="Destacados" products={featured} />
-
-      <section className="border-y border-line bg-white">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2 md:items-center">
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-gold">Lujo minimalista</p>
-            <h2 className="mt-3 font-[family-name:var(--font-display)] text-4xl">
-              {settings.about_title}
-            </h2>
-            <p className="mt-4 leading-relaxed text-ink-soft">{settings.about_text}</p>
-            <Link
-              href="/quienes-somos"
-              className="mt-6 inline-block text-accent underline-offset-4 hover:underline"
-            >
-              Conocenos
-            </Link>
-          </div>
-          <div
-            className="min-h-72 rounded-sm bg-cover bg-center"
-            style={{
-              backgroundImage:
-                "url(https://images.unsplash.com/photo-1548036328-c9fa89d128ac?auto=format&fit=crop&w=1200&q=80)",
-            }}
+        <div className="relative order-1 h-[min(52vh,420px)] min-h-[240px] sm:h-[min(55vh,520px)] lg:order-2 lg:h-auto lg:min-h-[calc(100svh-7rem)]">
+          <HeroSlider
+            images={settings.hero_slides}
+            className="absolute inset-0 h-full w-full"
           />
         </div>
       </section>
 
-      <ProductGrid title="Más vendidos" products={bestsellers} />
+      <Reveal as="section" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20">
+        <div className="mb-7 flex items-end justify-between gap-4 sm:mb-10">
+          <h2 className="font-[family-name:var(--font-display)] text-[1.75rem] tracking-tight sm:text-4xl">
+            Colecciones
+          </h2>
+          <Link
+            href="/productos"
+            className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-soft transition hover:text-ink sm:text-[11px] sm:tracking-[0.16em]"
+          >
+            Ver catálogo
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-6">
+          {mainCategories.map((c) => (
+            <Link
+              key={c.id}
+              href={`/categoria/${c.slug}`}
+              className="group flex min-h-[4.5rem] flex-col items-center justify-center border border-line bg-card px-2 py-4 text-center transition hover:border-ink hover:shadow-[var(--shadow)] sm:min-h-28 sm:px-3 sm:py-6"
+            >
+              <span className="text-[10px] font-semibold uppercase leading-snug tracking-[0.12em] text-ink transition group-hover:text-accent sm:text-xs sm:tracking-[0.16em]">
+                {c.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </Reveal>
 
-      <section className="mx-auto grid max-w-6xl gap-8 px-4 py-14 md:grid-cols-3">
-        <div>
-          <h3 className="font-[family-name:var(--font-display)] text-2xl">Envíos a todo el país</h3>
-          <p className="mt-2 text-sm text-ink-soft">
-            Calculamos el envío en el checkout según tu dirección.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-[family-name:var(--font-display)] text-2xl">Pago seguro</h3>
-          <p className="mt-2 text-sm text-ink-soft">
-            Aboná con Mercado Pago en cuotas o el medio que prefieras.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-[family-name:var(--font-display)] text-2xl">Atención personalizada</h3>
-          <p className="mt-2 text-sm text-ink-soft">
-            Escribinos por WhatsApp al 11 3578-7669.
-          </p>
-        </div>
-      </section>
+      <ProductGrid
+        title="Destacados"
+        subtitle="Piezas seleccionadas de la temporada"
+        products={featured}
+      />
 
-      <NewsletterForm />
+      <Reveal as="section" className="border-y border-line bg-bg-deep">
+        <div className="mx-auto grid max-w-7xl gap-0 md:grid-cols-2 md:items-stretch">
+          <div className="relative min-h-[16rem] sm:min-h-80 md:min-h-[28rem]">
+            <Image
+              src={aboutImage}
+              alt=""
+              fill
+              className="object-cover object-center"
+              sizes="(max-width:768px) 100vw, 50vw"
+            />
+          </div>
+          <div className="flex flex-col justify-center px-4 py-12 sm:px-10 sm:py-14 lg:px-16">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold">
+              La marca
+            </p>
+            <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-tight sm:text-4xl md:text-5xl">
+              {settings.about_title}
+            </h2>
+            <p className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-ink-soft sm:text-base">
+              {settings.about_text}
+            </p>
+            <Link
+              href="/quienes-somos"
+              className="mt-8 inline-flex w-fit text-[11px] font-semibold uppercase tracking-[0.16em] text-ink underline-offset-4 hover:underline"
+            >
+              Conocenos
+            </Link>
+          </div>
+        </div>
+      </Reveal>
+
+      <ProductGrid
+        title="Más vendidos"
+        subtitle="Lo que más eligen nuestras clientas"
+        products={bestsellers}
+      />
+
+      <Reveal as="section" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20">
+        <div className="grid gap-8 sm:gap-10 md:grid-cols-3 md:gap-8">
+          {[
+            {
+              title: "Envíos a todo el país",
+              body: "Calculamos el envío en el checkout según tu dirección.",
+            },
+            {
+              title: "Pago seguro",
+              body: "Mercado Pago o efectivo con 5% de descuento.",
+            },
+            {
+              title: "Atención personalizada",
+              body: "Escribinos por WhatsApp al 11 3578-7669.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="border-t border-line pt-5 sm:pt-6">
+              <h3 className="font-[family-name:var(--font-display)] text-xl tracking-tight sm:text-2xl">
+                {item.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:mt-3">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </Reveal>
     </>
   );
 }

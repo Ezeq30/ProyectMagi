@@ -3,23 +3,29 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/format";
-import { whatsappUrl } from "@/lib/whatsapp";
+import { CASH_DISCOUNT_PERCENT } from "@/lib/payment";
 
 type Quote = {
   shippingCost: number;
   discount: number;
+  cashDiscount?: number;
   flatShipping: number;
+  shippingMethod?: "delivery" | "seller_arrange";
 };
+
+type ShippingMethod = "delivery" | "seller_arrange";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal, clear, paymentMethod, setPaymentMethod } = useCart();
   const cartSubtotal = subtotal();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [coupon, setCoupon] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("delivery");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,17 +39,25 @@ export default function CheckoutPage() {
     notes: "",
   });
 
+  const arrangeWithSeller = shippingMethod === "seller_arrange";
+  const payCash = paymentMethod === "cash";
+
   useEffect(() => {
     async function loadQuote() {
       const res = await fetch("/api/checkout/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subtotal: cartSubtotal, coupon: appliedCoupon || undefined }),
+        body: JSON.stringify({
+          subtotal: cartSubtotal,
+          coupon: appliedCoupon || undefined,
+          shippingMethod,
+          paymentMethod,
+        }),
       });
       if (res.ok) setQuote(await res.json());
     }
     if (cartSubtotal >= 0) loadQuote();
-  }, [cartSubtotal, appliedCoupon]);
+  }, [cartSubtotal, appliedCoupon, shippingMethod, paymentMethod]);
 
   const total = useMemo(() => {
     if (!quote) return cartSubtotal;
@@ -66,6 +80,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form,
           coupon: appliedCoupon || undefined,
+          shippingMethod,
+          paymentMethod,
           items,
         }),
       });
@@ -74,8 +90,8 @@ export default function CheckoutPage() {
 
       clear();
 
-      if (data.init_point) {
-        window.location.href = data.init_point;
+      if (data.payPage || data.transfer || data.init_point) {
+        router.push(`/checkout/pagar?order=${data.orderNumber}`);
         return;
       }
 
@@ -109,9 +125,6 @@ export default function CheckoutPage() {
               ["customer_name", "Nombre completo"],
               ["customer_email", "Email"],
               ["customer_phone", "Teléfono"],
-              ["shipping_address", "Dirección"],
-              ["shipping_city", "Ciudad"],
-              ["shipping_postal", "Código postal"],
             ] as const
           ).map(([key, label]) => (
             <label key={key} className="block text-sm">
@@ -125,32 +138,102 @@ export default function CheckoutPage() {
               />
             </label>
           ))}
+
+          <div className="rounded-xl border border-line bg-white p-4">
+            <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+          </div>
+
+          <fieldset className="space-y-3 rounded-xl border border-line bg-white p-4">
+            <legend className="px-1 text-sm font-medium text-ink">¿Cómo querés el envío?</legend>
+            <label className="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-[:checked]:border-accent">
+              <input
+                type="radio"
+                name="shippingMethod"
+                className="mt-1"
+                checked={shippingMethod === "delivery"}
+                onChange={() => setShippingMethod("delivery")}
+              />
+              <span>
+                <span className="block font-medium">Envío a domicilio</span>
+                <span className="text-sm text-ink-soft">
+                  Se suma el costo de envío al total
+                  {quote?.flatShipping != null
+                    ? ` (${formatPrice(quote.flatShipping)})`
+                    : ""}
+                  .
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-[:checked]:border-accent">
+              <input
+                type="radio"
+                name="shippingMethod"
+                className="mt-1"
+                checked={shippingMethod === "seller_arrange"}
+                onChange={() => setShippingMethod("seller_arrange")}
+              />
+              <span>
+                <span className="block font-medium">A coordinar con el vendedor</span>
+                <span className="text-sm text-ink-soft">
+                  Retiro o envío a acordar por WhatsApp. No se cobra envío en este pago.
+                </span>
+              </span>
+            </label>
+          </fieldset>
+
+          {!arrangeWithSeller &&
+            (
+              [
+                ["shipping_address", "Dirección"],
+                ["shipping_city", "Ciudad"],
+                ["shipping_postal", "Código postal"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="block text-sm">
+                <span className="mb-1 block text-ink-soft">{label}</span>
+                <input
+                  required
+                  type="text"
+                  className="magi-input"
+                  value={form[key]}
+                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                />
+              </label>
+            ))}
+
+          {arrangeWithSeller && (
+            <p className="rounded-lg border border-line bg-bg-deep/50 px-3 py-2 text-sm text-ink-soft">
+              Después de confirmar, coordiná con Magali por WhatsApp el retiro o el envío.
+            </p>
+          )}
+
           <label className="block text-sm">
             <span className="mb-1 block text-ink-soft">Notas (opcional)</span>
             <textarea
               className="magi-input min-h-24"
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              placeholder={
+                arrangeWithSeller || payCash
+                  ? "Ej: prefiero retirar / pago en efectivo al entregar"
+                  : ""
+              }
             />
           </label>
 
           {error && <p className="text-sm text-accent">{error}</p>}
 
           <button type="submit" className="magi-btn" disabled={loading}>
-            {loading ? "Procesando..." : "Pagar con Mercado Pago"}
+            {loading
+              ? "Procesando..."
+              : payCash
+                ? "Confirmar pedido (efectivo)"
+                : "Confirmar y pagar"}
           </button>
           <p className="text-xs text-ink-soft">
-            Si Mercado Pago aún no está configurado, el pedido se confirma en modo demo y podés
-            cerrarlo por{" "}
-            <a
-              className="underline"
-              href={whatsappUrl("Hola! Quiero completar mi compra en Accesorios Tortugas Online")}
-              target="_blank"
-              rel="noreferrer"
-            >
-              WhatsApp
-            </a>
-            .
+            {payCash
+              ? `Pago en efectivo con ${CASH_DISCOUNT_PERCENT}% de descuento. Coordinás con Magali por WhatsApp.`
+              : "Vas a pagar con Mercado Pago y después podés enviar el comprobante por WhatsApp."}
           </p>
         </form>
       </div>
@@ -184,12 +267,25 @@ export default function CheckoutPage() {
             <span>{formatPrice(cartSubtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Descuento</span>
+            <span>
+              Descuento
+              {payCash ? ` (efectivo ${CASH_DISCOUNT_PERCENT}%)` : ""}
+            </span>
             <span>-{formatPrice(quote?.discount ?? 0)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Envío</span>
-            <span>{formatPrice(quote?.shippingCost ?? 0)}</span>
+            <span>
+              {arrangeWithSeller
+                ? "Envío (a coordinar)"
+                : quote && quote.shippingCost === 0
+                  ? "Envío (gratis)"
+                  : "Envío"}
+            </span>
+            <span>
+              {arrangeWithSeller || (quote && quote.shippingCost === 0)
+                ? formatPrice(0)
+                : formatPrice(quote?.shippingCost ?? 0)}
+            </span>
           </div>
           <div className="flex justify-between text-base font-semibold">
             <span>Total</span>

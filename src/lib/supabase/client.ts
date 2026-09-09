@@ -1,15 +1,16 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+function env(name: string): string {
+  return (process.env[name] ?? "").trim();
+}
+
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  return Boolean(env("NEXT_PUBLIC_SUPABASE_URL") && env("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
 }
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = env("NEXT_PUBLIC_SUPABASE_URL");
+  const key = env("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   if (!url || !key) {
     throw new Error("Supabase no está configurado");
   }

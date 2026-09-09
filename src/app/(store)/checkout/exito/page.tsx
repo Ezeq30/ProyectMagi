@@ -1,34 +1,41 @@
 import Link from "next/link";
-import { whatsappUrl } from "@/lib/whatsapp";
+import { ShareReceiptButton } from "@/components/ShareReceiptButton";
+import { dbGetOrderByNumber, dbGetSettings } from "@/lib/db";
+import { formatPrice } from "@/lib/format";
 
 type Props = { searchParams: Promise<{ order?: string; demo?: string }> };
 
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
   const { order, demo } = await searchParams;
+  const [settings, orderData] = await Promise.all([
+    dbGetSettings(),
+    order ? dbGetOrderByNumber(order) : Promise.resolve(null),
+  ]);
+
   return (
     <div className="mx-auto max-w-xl px-4 py-20 text-center">
       <h1 className="font-[family-name:var(--font-display)] text-4xl">¡Gracias por tu compra!</h1>
       {order && (
         <p className="mt-4 text-ink-soft">
-          Número de pedido: <strong>{order}</strong>
+          Número de pedido: <strong className="text-ink">{order}</strong>
+        </p>
+      )}
+      {orderData && (
+        <p className="mt-2 text-ink-soft">
+          Total: <strong className="text-ink">{formatPrice(orderData.total)}</strong>
         </p>
       )}
       {demo === "1" && (
         <p className="mt-3 text-sm text-ink-soft">
-          Pedido registrado en modo demo (Mercado Pago no configurado). Coordiná el pago por WhatsApp.
+          El pedido quedó registrado. Coordiná el pago y enviá el comprobante por WhatsApp.
         </p>
       )}
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <a
-          href={whatsappUrl(
-            `Hola! Acabo de comprar en Accesorios Tortugas Online. Pedido: ${order ?? ""}`,
-          )}
-          target="_blank"
-          rel="noreferrer"
-          className="magi-btn"
-        >
-          Avisar por WhatsApp
-        </a>
+      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+        <ShareReceiptButton
+          orderNumber={order ?? ""}
+          total={orderData?.total ?? 0}
+          whatsapp={settings.whatsapp}
+        />
         <Link href="/productos" className="magi-btn magi-btn-outline">
           Seguir comprando
         </Link>

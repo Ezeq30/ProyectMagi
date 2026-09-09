@@ -1,14 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { CheckoutPaymentMethod } from "../payment";
 import type { CartItem } from "../types";
 
 type CartState = {
   items: CartItem[];
+  paymentMethod: CheckoutPaymentMethod;
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
-  addItem: (item: CartItem) => void;
+  setPaymentMethod: (method: CheckoutPaymentMethod) => void;
+  addItem: (item: CartItem, paymentMethod?: CheckoutPaymentMethod) => void;
   removeItem: (productId: string, variantId?: string) => void;
   setQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clear: () => void;
@@ -24,11 +27,13 @@ export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      paymentMethod: "mercadopago",
       isOpen: false,
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((s) => ({ isOpen: !s.isOpen })),
-      addItem: (item) => {
+      setPaymentMethod: (method) => set({ paymentMethod: method }),
+      addItem: (item, paymentMethod) => {
         const items = [...get().items];
         const idx = items.findIndex((i) =>
           sameLine(i, item.productId, item.variantId),
@@ -42,7 +47,11 @@ export const useCart = create<CartState>()(
         } else {
           items.push(item);
         }
-        set({ items, isOpen: true });
+        set({
+          items,
+          isOpen: true,
+          ...(paymentMethod ? { paymentMethod } : {}),
+        });
       },
       removeItem: (productId, variantId) => {
         set({

@@ -1,6 +1,15 @@
 import { DEFAULT_SETTINGS } from "./data/seed";
 import { DEFAULT_THEME } from "./theme";
-import { createServerDataClient, createServiceClient, hasServiceRole, useSupabaseData } from "./supabase/admin";
+import {
+  canUseAdminRpc,
+  canUseLocalStore,
+  createServerDataClient,
+  createServiceClient,
+  getAdminWriteToken,
+  hasServiceRole,
+  requireSupabaseWrites,
+  useSupabaseData,
+} from "./supabase/admin";
 import {
   readStore,
   updateStore,
@@ -16,6 +25,17 @@ import type {
   SiteSettings,
   ThemeColors,
 } from "./types";
+
+/** Escrituras locales solo fuera de Vercel. */
+function useLocalWrites(): boolean {
+  if (useSupabaseData() && (hasServiceRole() || canUseAdminRpc())) return false;
+  if (!canUseLocalStore()) requireSupabaseWrites();
+  return true;
+}
+
+function useRpcWrites(): boolean {
+  return useSupabaseData() && !hasServiceRole() && canUseAdminRpc();
+}
 
 function mapProduct(row: Record<string, unknown>, variants?: ProductVariant[]): Product {
   return {
@@ -47,6 +67,12 @@ function normalizeSettings(row?: Record<string, unknown> | null): SiteSettings {
     about_text: String(row?.about_text ?? DEFAULT_SETTINGS.about_text),
     hero_headline: String(row?.hero_headline ?? DEFAULT_SETTINGS.hero_headline),
     hero_sub: String(row?.hero_sub ?? DEFAULT_SETTINGS.hero_sub),
+    payment_alias: String(row?.payment_alias ?? DEFAULT_SETTINGS.payment_alias),
+    payment_cbu: String(row?.payment_cbu ?? DEFAULT_SETTINGS.payment_cbu),
+    payment_holder: String(row?.payment_holder ?? DEFAULT_SETTINGS.payment_holder),
+    hero_slides: Array.isArray(row?.hero_slides)
+      ? row.hero_slides.map(String).filter(Boolean).slice(0, 8)
+      : [...DEFAULT_SETTINGS.hero_slides],
     theme: {
       ...DEFAULT_THEME,
       ...theme,
@@ -198,7 +224,7 @@ export async function dbGetCoupon(code: string): Promise<Coupon | null> {
 export async function dbUpsertProduct(
   product: Omit<Product, "id" | "variants"> & { id?: string },
 ): Promise<string> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     let id = product.id;
     await updateStore((store) => {
       if (id) {
@@ -214,6 +240,27 @@ export async function dbUpsertProduct(
   }
 
   const sb = createServerDataClient();
+
+  if (useRpcWrites()) {
+    const { data, error } = await sb.rpc("admin_upsert_product", {
+      p_token: getAdminWriteToken(),
+      p_name: product.name,
+      p_slug: product.slug,
+      p_description: product.description,
+      p_price: product.price,
+      p_compare_at: product.compare_at,
+      p_stock: product.stock,
+      p_images: product.images,
+      p_category_id: product.category_id,
+      p_featured: product.featured,
+      p_bestseller: product.bestseller,
+      p_active: product.active,
+      p_id: product.id ?? null,
+    });
+    if (error) throw error;
+    return String(data);
+  }
+
   const payload = {
     name: product.name,
     slug: product.slug,
@@ -240,20 +287,134 @@ export async function dbUpsertProduct(
   return String(data.id);
 }
 
+/** Reemplaza los colores (variantes name=Color) de un producto. */
+export async function dbSetProductColors(
+  productId: string,
+  colors: { value: string; stock: number }[],
+): Promise<void> {
+  const cleaned = colors
+    .map((c) => ({
+      value: String(c.value ?? "").trim(),
+      stock: Math.max(0, Number(c.stock) || 0),
+    }))
+    .filter((c) => c.value);
+
+  const totalStock = cleaned.reduce((s, c) => s + c.stock, 0);
+
+  if (useLocalWrites()) {
+    await updateStore((store) => {
+      const idx = store.products.findIndex((p) => p.id === productId);
+      if (idx < 0) throw new Error("No encontrado");
+      const prev = store.products[idx];
+      const other = (prev.variants ?? []).filter(
+        (v) => v.name.toLowerCase() !== "color",
+      );
+      const colorVariants: ProductVariant[] = cleaned.map((c) => ({
+        id: crypto.randomUUID(),
+        product_id: productId,
+        name: "Color",
+        value: c.value,
+        stock: c.stock,
+      }));
+      store.products[idx] = {
+        ...prev,
+        stock: cleaned.length ? totalStock : prev.stock,
+        variants: [...other, ...colorVariants],
+      };
+    });
+    return;
+  }
+
+  const sb = createServerDataClient();
+
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_set_product_colors", {
+      p_token: getAdminWriteToken(),
+      p_product_id: productId,
+      p_colors: cleaned,
+    });
+    if (error) throw error;
+    return;
+  }
+
+  await sb
+    .from("product_variants")
+    .delete()
+    .eq("product_id", productId)
+    .ilike("name", "color");
+
+  if (cleaned.length === 0) return;
+
+  const { error } = await sb.from("product_variants").insert(
+    cleaned.map((c) => ({
+      product_id: productId,
+      name: "Color",
+      value: c.value,
+      stock: c.stock,
+    })),
+  );
+  if (error) throw error;
+
+  await sb
+    .from("products")
+    .update({ stock: totalStock, updated_at: new Date().toISOString() })
+    .eq("id", productId);
+}
+
+export async function dbApplyOrderStockDecrement(orderId: string): Promise<void> {
+  if (useLocalWrites()) {
+    await updateStore((store) => {
+      const order = store.orders.find(
+        (o) => o.id === orderId || o.order_number === orderId,
+      );
+      if (!order || order.status !== "paid") return;
+      if ((order as Order & { stock_decremented?: boolean }).stock_decremented) return;
+
+      for (const item of order.items) {
+        const product = store.products.find((p) => p.id === item.product_id);
+        if (!product) continue;
+        product.stock = Math.max(0, product.stock - item.quantity);
+        if (item.variant_id && product.variants) {
+          const variant = product.variants.find((v) => v.id === item.variant_id);
+          if (variant) {
+            variant.stock = Math.max(0, variant.stock - item.quantity);
+          }
+        }
+      }
+      (order as Order & { stock_decremented?: boolean }).stock_decremented = true;
+    });
+    return;
+  }
+
+  const sb = createServerDataClient();
+  const { error } = await sb.rpc("apply_order_stock_decrement", {
+    p_order_id: orderId,
+  });
+  if (error) throw error;
+}
+
 export async function dbDeleteProduct(id: string): Promise<void> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     await updateStore((store) => {
       store.products = store.products.filter((p) => p.id !== id);
     });
     return;
   }
   const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_delete_product", {
+      p_token: getAdminWriteToken(),
+      p_id: id,
+    });
+    if (error) throw error;
+    return;
+  }
   const { error } = await sb.from("products").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function dbAddCategory(name: string, slug: string): Promise<Category> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     const category: Category = {
       id: crypto.randomUUID(),
       name,
@@ -267,6 +428,22 @@ export async function dbAddCategory(name: string, slug: string): Promise<Categor
     return category;
   }
   const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { data, error } = await sb.rpc("admin_add_category", {
+      p_token: getAdminWriteToken(),
+      p_name: name,
+      p_slug: slug,
+    });
+    if (error) throw error;
+    const row = data as Record<string, unknown>;
+    return {
+      id: String(row.id),
+      name: String(row.name),
+      slug: String(row.slug),
+      parent_id: null,
+      sort_order: Number(row.sort_order ?? 0),
+    };
+  }
   const { data, error } = await sb
     .from("categories")
     .insert({ name, slug, sort_order: Date.now() })
@@ -283,7 +460,7 @@ export async function dbAddCategory(name: string, slug: string): Promise<Categor
 }
 
 export async function dbDeleteCategory(id: string): Promise<void> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     await updateStore((store) => {
       store.categories = store.categories.filter((c) => c.id !== id);
       store.products = store.products.map((p) =>
@@ -293,19 +470,46 @@ export async function dbDeleteCategory(id: string): Promise<void> {
     return;
   }
   const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_delete_category", {
+      p_token: getAdminWriteToken(),
+      p_id: id,
+    });
+    if (error) throw error;
+    return;
+  }
   await sb.from("products").update({ category_id: null }).eq("category_id", id);
   const { error } = await sb.from("categories").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function dbUpdateSettings(settings: SiteSettings): Promise<void> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     await updateStore((store) => {
       store.settings = settings;
     });
     return;
   }
   const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_update_settings", {
+      p_token: getAdminWriteToken(),
+      p_free_shipping_from: settings.free_shipping_from,
+      p_flat_shipping_cost: settings.flat_shipping_cost,
+      p_whatsapp: settings.whatsapp,
+      p_promo_banner: settings.promo_banner,
+      p_about_title: settings.about_title,
+      p_about_text: settings.about_text,
+      p_hero_headline: settings.hero_headline,
+      p_hero_sub: settings.hero_sub,
+      p_theme: settings.theme,
+      p_payment_alias: settings.payment_alias,
+      p_payment_cbu: settings.payment_cbu,
+      p_payment_holder: settings.payment_holder,
+    });
+    if (error) throw error;
+    return;
+  }
   const { error } = await sb.from("site_settings").upsert({
     id: 1,
     free_shipping_from: settings.free_shipping_from,
@@ -316,9 +520,43 @@ export async function dbUpdateSettings(settings: SiteSettings): Promise<void> {
     about_text: settings.about_text,
     hero_headline: settings.hero_headline,
     hero_sub: settings.hero_sub,
+    payment_alias: settings.payment_alias,
+    payment_cbu: settings.payment_cbu,
+    payment_holder: settings.payment_holder,
+    hero_slides: settings.hero_slides.slice(0, 8),
     theme: settings.theme,
     updated_at: new Date().toISOString(),
   });
+  if (error) throw error;
+}
+
+export async function dbSetHeroSlides(slides: string[]): Promise<void> {
+  const cleaned = slides.map((s) => s.trim()).filter(Boolean).slice(0, 8);
+
+  if (useLocalWrites()) {
+    await updateStore((store) => {
+      store.settings = { ...store.settings, hero_slides: cleaned };
+    });
+    return;
+  }
+
+  const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_set_hero_slides", {
+      p_token: getAdminWriteToken(),
+      p_slides: cleaned,
+    });
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await sb
+    .from("site_settings")
+    .upsert({
+      id: 1,
+      hero_slides: cleaned,
+      updated_at: new Date().toISOString(),
+    });
   if (error) throw error;
 }
 
@@ -356,6 +594,7 @@ export async function dbGetOrders(): Promise<Order[]> {
       id: String(item.id),
       product_id: item.product_id ? String(item.product_id) : null,
       product_name: String(item.product_name),
+      variant_id: item.variant_id ? String(item.variant_id) : null,
       variant_label: item.variant_label ? String(item.variant_label) : null,
       unit_price: Number(item.unit_price),
       quantity: Number(item.quantity),
@@ -364,15 +603,57 @@ export async function dbGetOrders(): Promise<Order[]> {
   }));
 }
 
+export async function dbGetOrderByNumber(orderNumber: string): Promise<Order | null> {
+  if (!orderNumber) return null;
+  if (!useSupabaseData()) {
+    const store = await readStore();
+    return store.orders.find((o) => o.order_number === orderNumber) ?? null;
+  }
+  const sb = createServerDataClient();
+  const { data, error } = await sb
+    .from("orders")
+    .select("*, order_items(*)")
+    .eq("order_number", orderNumber)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: String(data.id),
+    order_number: String(data.order_number),
+    status: data.status,
+    customer_name: String(data.customer_name),
+    customer_email: String(data.customer_email),
+    customer_phone: String(data.customer_phone ?? ""),
+    shipping_address: String(data.shipping_address ?? ""),
+    shipping_city: String(data.shipping_city ?? ""),
+    shipping_postal: String(data.shipping_postal ?? ""),
+    shipping_cost: Number(data.shipping_cost ?? 0),
+    subtotal: Number(data.subtotal ?? 0),
+    discount: Number(data.discount ?? 0),
+    total: Number(data.total ?? 0),
+    coupon_code: data.coupon_code ? String(data.coupon_code) : null,
+    mp_preference_id: data.mp_preference_id ? String(data.mp_preference_id) : null,
+    mp_payment_id: data.mp_payment_id ? String(data.mp_payment_id) : null,
+    notes: String(data.notes ?? ""),
+    created_at: String(data.created_at),
+    items: (data.order_items ?? []).map((item: Record<string, unknown>) => ({
+      id: String(item.id),
+      product_id: item.product_id ? String(item.product_id) : null,
+      product_name: String(item.product_name),
+      variant_id: item.variant_id ? String(item.variant_id) : null,
+      variant_label: item.variant_label ? String(item.variant_label) : null,
+      unit_price: Number(item.unit_price),
+      quantity: Number(item.quantity),
+      image: item.image ? String(item.image) : null,
+    })),
+  };
+}
+
 export async function dbCreateOrder(order: Order): Promise<void> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     await updateStore((store) => {
+      // El stock se descuenta solo cuando el pago queda OK (paid)
       store.orders.unshift(order);
-      for (const item of order.items) {
-        const product = store.products.find((p) => p.id === item.product_id);
-        if (!product) continue;
-        product.stock = Math.max(0, product.stock - item.quantity);
-      }
     });
     return;
   }
@@ -406,6 +687,7 @@ export async function dbCreateOrder(order: Order): Promise<void> {
         order_id: order.id,
         product_id: item.product_id,
         product_name: item.product_name,
+        variant_id: item.variant_id ?? null,
         variant_label: item.variant_label,
         unit_price: item.unit_price,
         quantity: item.quantity,
@@ -414,27 +696,13 @@ export async function dbCreateOrder(order: Order): Promise<void> {
     );
     if (itemsError) throw itemsError;
   }
-
-  for (const item of order.items) {
-    if (!item.product_id) continue;
-    const { data: product } = await sb
-      .from("products")
-      .select("stock")
-      .eq("id", item.product_id)
-      .maybeSingle();
-    if (!product) continue;
-    await sb
-      .from("products")
-      .update({ stock: Math.max(0, Number(product.stock) - item.quantity) })
-      .eq("id", item.product_id);
-  }
 }
 
 export async function dbUpdateOrderStatus(
   id: string,
   status: Order["status"],
 ): Promise<void> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     await updateStore((store) => {
       const order = store.orders.find((o) => o.id === id);
       if (order) order.status = status;
@@ -442,10 +710,40 @@ export async function dbUpdateOrderStatus(
     return;
   }
   const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_update_order_status", {
+      p_token: getAdminWriteToken(),
+      p_id: id,
+      p_status: status,
+    });
+    if (error) throw error;
+    return;
+  }
   const { error } = await sb
     .from("orders")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw error;
+}
+
+export async function dbDeleteOrder(id: string): Promise<void> {
+  if (useLocalWrites()) {
+    await updateStore((store) => {
+      store.orders = store.orders.filter((o) => o.id !== id);
+    });
+    return;
+  }
+  const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_delete_order", {
+      p_token: getAdminWriteToken(),
+      p_id: id,
+    });
+    if (error) throw error;
+    return;
+  }
+  await sb.from("order_items").delete().eq("order_id", id);
+  const { error } = await sb.from("orders").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -454,7 +752,7 @@ export async function dbUpdateOrderPayment(
   paymentId: string,
   status: Order["status"],
 ): Promise<void> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (useLocalWrites()) {
     await updateStore((store) => {
       const order = store.orders.find(
         (o) => o.id === orderId || o.order_number === orderId,
@@ -463,9 +761,32 @@ export async function dbUpdateOrderPayment(
       order.mp_payment_id = paymentId;
       order.status = status;
     });
+    if (status === "paid") {
+      await dbApplyOrderStockDecrement(orderId);
+    }
     return;
   }
+
   const sb = createServerDataClient();
+
+  if (status === "paid") {
+    // Preferir UUID del pedido (external_reference de MP)
+    const { data: byId } = await sb
+      .from("orders")
+      .select("id")
+      .or(`id.eq.${orderId},order_number.eq.${orderId}`)
+      .maybeSingle();
+
+    if (byId?.id) {
+      const { error } = await sb.rpc("mp_mark_order_paid", {
+        p_order_id: byId.id,
+        p_payment_id: paymentId,
+      });
+      if (error) throw error;
+      return;
+    }
+  }
+
   await sb
     .from("orders")
     .update({
@@ -488,10 +809,10 @@ export async function dbAddNewsletter(email: string): Promise<void> {
 export async function dbUploadProductImage(
   file: File,
 ): Promise<string> {
-  if (!useSupabaseData() || !hasServiceRole()) {
+  if (!useSupabaseData()) {
     throw new Error("UPLOAD_LOCAL");
   }
-  const sb = createServiceClient();
+  const sb = hasServiceRole() ? createServiceClient() : createServerDataClient();
   const ext = file.type.split("/")[1] || "jpg";
   const path = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());

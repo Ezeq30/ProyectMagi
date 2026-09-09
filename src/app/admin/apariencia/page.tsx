@@ -10,7 +10,7 @@ export default async function AdminAppearancePage() {
   return (
     <div>
       <h1 className="mb-2 font-[family-name:var(--font-display)] text-4xl">Apariencia</h1>
-      <AppearanceForm initial={settings.theme} />
+      <AppearanceForm initial={settings.theme} initialSlides={settings.hero_slides} />
     </div>
   );
 }

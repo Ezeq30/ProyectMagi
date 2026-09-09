@@ -12,6 +12,14 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     "Somos Accesorios Tortugas Online: carteras, bolsos, mochilas, bijou y vasos elegidos con cuidado. Comprá online y recibí en todo el país.",
   hero_headline: "Accesorios con estilo propio",
   hero_sub: "Carteras, bolsos, mochilas, bijou y vasos — lujo minimalista.",
+  payment_alias: "",
+  payment_cbu: "",
+  payment_holder: "",
+  hero_slides: [
+    "/hero/lima-backpack.jpg",
+    "/hero/lima-crossbody.jpg",
+    "/hero/trendy-mama.jpg",
+  ],
   theme: { ...DEFAULT_THEME },
 };
 

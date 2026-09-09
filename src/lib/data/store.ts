@@ -33,6 +33,9 @@ function normalizeSettings(settings: Partial<SiteSettings> | undefined): SiteSet
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
+    hero_slides: Array.isArray(settings?.hero_slides)
+      ? settings.hero_slides.map(String).filter(Boolean).slice(0, 8)
+      : [...DEFAULT_SETTINGS.hero_slides],
     theme: {
       ...DEFAULT_THEME,
       ...(settings?.theme ?? {}),

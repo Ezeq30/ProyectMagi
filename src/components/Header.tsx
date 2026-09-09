@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { useThemeMode } from "@/components/ThemeProvider";
 import { useCart } from "@/lib/cart/store";
 import type { Category } from "@/lib/types";
 
@@ -29,8 +30,48 @@ function NavLink({
       onClick={onClick}
       className={`nav-link ${active ? "nav-link-active" : ""}`}
     >
-      {children}
+      <span className="nav-link-label">{children}</span>
     </Link>
+  );
+}
+
+function Chevron({ open }: { open?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      className={`nav-chevron ${open ? "nav-chevron-open" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M2.5 4.5 6 8l3.5-3.5" />
+    </svg>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useThemeMode();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="flex h-9 w-9 shrink-0 items-center justify-center border border-line text-ink transition hover:border-ink"
+      aria-label={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+    >
+      {theme === "dark" ? (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
@@ -41,6 +82,8 @@ export function Header({ categories }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const pathname = usePathname();
+  const productsActive =
+    pathname.startsWith("/productos") || pathname.startsWith("/categoria");
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -48,23 +91,33 @@ export function Header({ categories }: Props) {
     setProductsOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-line/60 bg-[color:var(--bg)]/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-3 sm:h-16 sm:gap-6 sm:px-4">
+    <header className="sticky top-0 z-40 border-b border-line bg-[color:var(--bg)]/90 backdrop-blur-md pt-[env(safe-area-inset-top)]">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-3 sm:h-[4.25rem] sm:gap-4 sm:px-6">
         <button
           type="button"
-          className="shrink-0 p-1.5 md:hidden"
+          className="shrink-0 p-1.5 lg:hidden"
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <span className="block h-0.5 w-5 bg-ink mb-1" />
-          <span className="block h-0.5 w-5 bg-ink mb-1" />
-          <span className="block h-0.5 w-5 bg-ink" />
+          <span className="mb-1 block h-px w-5 bg-ink" />
+          <span className="mb-1 block h-px w-5 bg-ink" />
+          <span className="block h-px w-5 bg-ink" />
         </button>
 
         <Link
           href="/"
-          className="min-w-0 shrink-0"
+          className="min-w-0 shrink truncate"
           aria-label="Accesorios Tortugas Online"
           onClick={() => setMenuOpen(false)}
         >
@@ -76,7 +129,7 @@ export function Header({ categories }: Props) {
           </span>
         </Link>
 
-        <nav className="ml-auto hidden items-center gap-1 md:flex">
+        <nav className="ml-auto hidden items-center gap-0.5 lg:flex">
           <div
             className="relative"
             onMouseEnter={() => setProductsOpen(true)}
@@ -84,37 +137,27 @@ export function Header({ categories }: Props) {
           >
             <Link
               href="/productos"
-              className={`nav-link inline-flex items-center gap-1 ${
-                pathname.startsWith("/productos") || pathname.startsWith("/categoria")
-                  ? "nav-link-active"
-                  : ""
-              }`}
+              className={`nav-link ${productsActive ? "nav-link-active" : ""}`}
               aria-expanded={productsOpen}
+              aria-haspopup="menu"
             >
-              Productos
-              <svg
-                viewBox="0 0 12 12"
-                className={`h-3 w-3 transition ${productsOpen ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden
-              >
-                <path d="M2.5 4.5 6 8l3.5-3.5" />
-              </svg>
+              <span className="nav-link-label">Productos</span>
+              <Chevron open={productsOpen} />
             </Link>
 
             <div
-              className={`absolute left-1/2 top-full z-50 w-52 -translate-x-1/2 pt-2 transition ${
+              className={`absolute left-0 top-full z-50 min-w-[12rem] pt-2 transition ${
                 productsOpen
                   ? "visible opacity-100"
-                  : "invisible opacity-0 pointer-events-none"
+                  : "invisible pointer-events-none opacity-0"
               }`}
+              role="menu"
             >
-              <div className="overflow-hidden rounded-lg border border-line bg-[color:var(--card,#fff)] py-1.5 shadow-md">
+              <div className="overflow-hidden border border-line bg-card py-1 shadow-[var(--shadow)]">
                 <Link
                   href="/productos"
-                  className="block px-3.5 py-2 text-[13px] text-ink-soft transition hover:bg-bg-deep hover:text-accent"
+                  role="menuitem"
+                  className="block px-4 py-2.5 text-[12px] uppercase tracking-[0.12em] text-ink-soft transition hover:bg-bg-deep hover:text-ink"
                 >
                   Ver todos
                 </Link>
@@ -122,7 +165,8 @@ export function Header({ categories }: Props) {
                   <Link
                     key={c.id}
                     href={`/categoria/${c.slug}`}
-                    className="block px-3.5 py-2 text-[13px] text-ink-soft transition hover:bg-bg-deep hover:text-accent"
+                    role="menuitem"
+                    className="block px-4 py-2.5 text-[12px] uppercase tracking-[0.12em] text-ink-soft transition hover:bg-bg-deep hover:text-ink"
                   >
                     {c.name}
                   </Link>
@@ -136,28 +180,37 @@ export function Header({ categories }: Props) {
           <NavLink href="/contacto">Contacto</NavLink>
         </nav>
 
-        <button
-          type="button"
-          onClick={openCart}
-          className="relative ml-auto shrink-0 rounded-full border border-ink/15 px-3 py-1.5 text-xs transition hover:border-accent hover:text-accent md:ml-2 sm:text-sm"
-          aria-label="Abrir carrito"
-        >
-          Carrito
-          {mounted && count > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] text-white">
-              {count}
-            </span>
-          )}
-        </button>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:ml-3">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={openCart}
+            className="relative flex h-9 items-center gap-2 border border-line px-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition hover:border-ink sm:px-3"
+            aria-label="Abrir carrito"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="M6 7h15l-1.5 9H8L6 7z" />
+              <path d="M6 7 5 3H2" />
+              <circle cx="9" cy="20" r="1" />
+              <circle cx="18" cy="20" r="1" />
+            </svg>
+            <span className="hidden sm:inline">Carrito</span>
+            {mounted && count > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] text-white">
+                {count}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {menuOpen && (
-        <div className="border-t border-line bg-bg-deep px-4 py-3 md:hidden max-h-[70vh] overflow-y-auto">
+        <div className="max-h-[min(70vh,calc(100dvh-3.5rem))] overflow-y-auto border-t border-line bg-bg-deep px-4 py-4 lg:hidden">
           <div className="flex flex-col gap-0.5 text-sm">
             <Link
               href="/productos"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-2 py-2.5 font-medium hover:bg-[color:var(--bg)] hover:text-accent"
+              className="rounded-sm px-2 py-2.5 font-medium uppercase tracking-[0.1em] hover:bg-bg hover:text-accent"
             >
               Productos
             </Link>
@@ -166,7 +219,7 @@ export function Header({ categories }: Props) {
                 key={c.id}
                 href={`/categoria/${c.slug}`}
                 onClick={() => setMenuOpen(false)}
-                className="rounded-md py-2 pl-4 text-ink-soft hover:bg-[color:var(--bg)] hover:text-accent"
+                className="rounded-sm py-2 pl-4 text-ink-soft hover:bg-bg hover:text-ink"
               >
                 {c.name}
               </Link>
@@ -175,21 +228,21 @@ export function Header({ categories }: Props) {
             <Link
               href="/quienes-somos"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-2 py-2.5 hover:bg-[color:var(--bg)] hover:text-accent"
+              className="rounded-sm px-2 py-2.5 uppercase tracking-[0.1em] hover:bg-bg"
             >
               Quiénes somos
             </Link>
             <Link
               href="/como-comprar"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-2 py-2.5 hover:bg-[color:var(--bg)] hover:text-accent"
+              className="rounded-sm px-2 py-2.5 uppercase tracking-[0.1em] hover:bg-bg"
             >
               Cómo comprar
             </Link>
             <Link
               href="/contacto"
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-2 py-2.5 hover:bg-[color:var(--bg)] hover:text-accent"
+              className="rounded-sm px-2 py-2.5 uppercase tracking-[0.1em] hover:bg-bg"
             >
               Contacto
             </Link>

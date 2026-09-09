@@ -1,20 +1,20 @@
 import type { ThemeColors } from "./types";
 
-/** Paleta fija — Guía de estilo lujo minimalista */
+/** Paleta fija — Boutique premium (claro / oscuro) */
 export const BRAND_PALETTE = [
-  { id: "taupe", name: "Beige Taupe", hex: "#C2A87D", role: "Color primario" },
-  { id: "sage", name: "Sage Green", hex: "#6B8A7A", role: "Detalles / botones" },
-  { id: "offwhite", name: "Off White", hex: "#F9F6F1", role: "Fondo sugerido" },
-  { id: "gold", name: "Matte Gold", hex: "#D4AF87", role: "Acentos premium" },
+  { id: "ink", name: "Ink", hex: "#1A1A1A", role: "Texto / tipografía" },
+  { id: "sage", name: "Sage Green", hex: "#5F7F6E", role: "CTA / ofertas" },
+  { id: "offwhite", name: "Gallery White", hex: "#FAFAF8", role: "Fondo claro" },
+  { id: "gold", name: "Matte Gold", hex: "#C4A574", role: "Acentos premium" },
 ] as const;
 
 export type PaletteHex = (typeof BRAND_PALETTE)[number]["hex"];
 
 export const DEFAULT_THEME: ThemeColors = {
-  primary: "#C2A87D",
-  sage: "#6B8A7A",
-  gold: "#D4AF87",
-  background: "#F9F6F1",
+  primary: "#C4A574",
+  sage: "#5F7F6E",
+  gold: "#C4A574",
+  background: "#FAFAF8",
   card: "#FFFFFF",
 };
 
@@ -22,44 +22,26 @@ export function isPaletteColor(hex: string): boolean {
   const normalized = hex.toUpperCase();
   return (
     BRAND_PALETTE.some((c) => c.hex.toUpperCase() === normalized) ||
-    normalized === "#FFFFFF"
+    normalized === "#FFFFFF" ||
+    normalized === "#FAFAF8" ||
+    normalized === "#1A1A1A"
   );
 }
 
+/** Solo acentos de marca — superficies las controla light/dark en CSS */
 export function themeToCssVars(theme: ThemeColors): Record<string, string> {
-  const background = theme.background || DEFAULT_THEME.background;
-  const card = theme.card || DEFAULT_THEME.card;
-  const sage = DEFAULT_THEME.sage;
-  const gold = DEFAULT_THEME.gold;
-  const primary = DEFAULT_THEME.primary;
+  const sage = theme.sage || DEFAULT_THEME.sage;
+  const gold = theme.gold || DEFAULT_THEME.gold;
+  const primary = theme.primary || DEFAULT_THEME.primary;
 
   return {
-    "--bg": background,
-    "--bg-deep": shade(background, -6),
-    "--card": card,
-    "--card-text": isDark(card) ? "#fffcf7" : "#3a342c",
-    "--card-muted": isDark(card) ? "#e8e0d6" : "#6b6358",
-    "--ink": "#3a342c",
-    "--ink-soft": "#6b6358",
     "--accent": sage,
     "--accent-deep": shade(sage, -18),
     "--gold": gold,
     "--primary": primary,
-    "--line": shade(primary, 38),
-    "--white": "#fffcf7",
     "--success": sage,
+    "--sale": "#3D8B6E",
   };
-}
-
-function isDark(hex: string): boolean {
-  const raw = hex.replace("#", "");
-  if (raw.length !== 6) return false;
-  const num = parseInt(raw, 16);
-  const r = (num >> 16) & 0xff;
-  const g = (num >> 8) & 0xff;
-  const b = num & 0xff;
-  // relative luminance
-  return (0.299 * r + 0.587 * g + 0.114 * b) < 140;
 }
 
 function shade(hex: string, percent: number): string {

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart/store";
-import { formatPrice, installmentAmount } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 type Props = { product: Product };
@@ -12,74 +12,91 @@ export function ProductCard({ product }: Props) {
   const addItem = useCart((s) => s.addItem);
   const image =
     product.images[0] ??
-    "https://placehold.co/800x1000/c2a87d/f9f6f1/png?text=Tortugas";
-  const outOfStock = product.stock <= 0;
+    "https://placehold.co/800x1000/1a1a1a/fafaf8/png?text=Tortugas";
+  const colorVariants = (product.variants ?? []).filter(
+    (v) => v.name.toLowerCase() === "color",
+  );
+  const available =
+    colorVariants.length > 0
+      ? colorVariants.reduce((s, v) => s + v.stock, 0)
+      : product.stock;
+  const outOfStock = available <= 0;
+  const needsColor = colorVariants.length > 0;
+  const onSale = Boolean(product.compare_at && product.compare_at > product.price);
 
   return (
-    <article className="product-card group flex h-full flex-col overflow-hidden rounded-xl border border-line/60 p-2 sm:p-3">
+    <article className="product-card group flex h-full flex-col overflow-hidden">
       <Link
         href={`/productos/${product.slug}`}
-        className="block overflow-hidden rounded-lg bg-bg-deep"
+        className="relative block overflow-hidden bg-bg-deep"
       >
         <div className="relative aspect-[4/5]">
           <Image
             src={image}
             alt={product.name}
             fill
-            className="object-cover transition duration-500 group-hover:scale-105"
+            className="product-card-image object-cover object-center"
             sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
           />
-          {product.compare_at && product.compare_at > product.price && (
-            <span className="absolute left-2 top-2 bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white sm:left-3 sm:top-3 sm:text-[11px]">
+          {onSale && (
+            <span
+              data-sale
+              className="absolute left-2 top-2 bg-[color:var(--sale)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:left-3 sm:top-3 sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]"
+            >
               Oferta
             </span>
           )}
           {outOfStock && (
-            <span className="absolute inset-0 flex items-center justify-center bg-ink/45 px-2 text-center text-xs font-semibold text-white sm:text-sm">
+            <span className="absolute inset-0 flex items-center justify-center bg-ink/50 px-2 text-center text-xs font-semibold uppercase tracking-wider text-white">
               Sin stock
             </span>
           )}
         </div>
       </Link>
-      <div className="mt-2 flex flex-1 flex-col space-y-1 sm:mt-3">
+      <div className="flex flex-1 flex-col px-1 pb-3 pt-3 sm:px-1.5 sm:pt-4">
         <Link
           href={`/productos/${product.slug}`}
-          className="block text-[13px] leading-snug sm:text-sm md:text-base"
+          className="block text-[13px] leading-snug tracking-wide sm:text-sm"
         >
           {product.name}
         </Link>
-        <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
-          <span className="text-sm font-semibold sm:text-base">
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+          <span className="text-sm font-semibold tracking-wide">
             {formatPrice(product.price)}
           </span>
-          {product.compare_at && product.compare_at > product.price && (
-            <span className="text-xs text-[color:var(--card-muted)] line-through sm:text-sm">
-              {formatPrice(product.compare_at)}
+          {onSale && (
+            <span className="text-xs text-ink-soft line-through">
+              {formatPrice(product.compare_at!)}
             </span>
           )}
         </div>
-        <p className="text-[10px] text-[color:var(--card-muted)] sm:text-xs">
-          3 x {installmentAmount(product.price)}
-        </p>
-        {!outOfStock && (
-          <button
-            type="button"
-            className="mt-auto pt-2 text-left text-xs font-semibold text-accent underline-offset-4 hover:underline sm:text-sm"
-            onClick={() =>
-              addItem({
-                productId: product.id,
-                slug: product.slug,
-                name: product.name,
-                price: product.price,
-                image,
-                quantity: 1,
-                maxStock: product.stock,
-              })
-            }
-          >
-            Agregar al carrito
-          </button>
-        )}
+        {!outOfStock &&
+          (needsColor ? (
+            <Link
+              href={`/productos/${product.slug}`}
+              className="mt-auto pt-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-deep"
+            >
+              Elegir color
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="mt-auto pt-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-deep"
+              onClick={() =>
+                addItem({
+                  productId: product.id,
+                  slug: product.slug,
+                  name: product.name,
+                  price: product.price,
+                  image,
+                  quantity: 1,
+                  maxStock: product.stock,
+                })
+              }
+            >
+              Agregar
+            </button>
+          ))}
       </div>
     </article>
   );

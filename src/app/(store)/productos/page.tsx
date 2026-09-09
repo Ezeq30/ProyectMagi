@@ -22,5 +22,11 @@ export default async function ProductsPage() {
     );
   }
 
-  return <ProductGrid title="Todos los productos" products={products} />;
+  return (
+    <ProductGrid
+      title="Todos los productos"
+      subtitle="Catálogo completo · stock real"
+      products={products}
+    />
+  );
 }

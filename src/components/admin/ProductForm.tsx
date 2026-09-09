@@ -11,13 +11,28 @@ type Props = {
   categories: Category[];
 };
 
+type ColorRow = { value: string; stock: number };
+
+const MAX_IMAGES = 5;
+
+function initialColors(product?: Product): ColorRow[] {
+  return (product?.variants ?? [])
+    .filter((v) => v.name.toLowerCase() === "color")
+    .map((v) => ({ value: v.value, stock: v.stock }));
+}
+
 export function ProductForm({ product, categories }: Props) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [images, setImages] = useState<string[]>(product?.images ?? []);
+  const [images, setImages] = useState<string[]>(
+    (product?.images ?? []).slice(0, MAX_IMAGES),
+  );
+  const [colors, setColors] = useState<ColorRow[]>(initialColors(product));
+  const [colorDraft, setColorDraft] = useState("");
+  const [colorStockDraft, setColorStockDraft] = useState("1");
   const [form, setForm] = useState({
     name: product?.name ?? "",
     slug: product?.slug ?? "",
@@ -32,21 +47,65 @@ export function ProductForm({ product, categories }: Props) {
   });
 
   const canAutoSlug = useMemo(() => !product, [product]);
+  const remainingSlots = MAX_IMAGES - images.length;
+  const canAddMore = remainingSlots > 0;
+  const colorsTotal = useMemo(
+    () => colors.reduce((s, c) => s + Math.max(0, Number(c.stock) || 0), 0),
+    [colors],
+  );
+  const hasColors = colors.length > 0;
+
+  function addColor() {
+    const value = colorDraft.trim();
+    const stock = Math.max(0, Number(colorStockDraft) || 0);
+    if (!value) return;
+    const exists = colors.some((c) => c.value.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      setError("Ese color ya está cargado");
+      setColorDraft("");
+      return;
+    }
+    setColors((prev) => [...prev, { value, stock }]);
+    setColorDraft("");
+    setColorStockDraft("1");
+    setError("");
+  }
+
+  function removeColor(value: string) {
+    setColors((prev) => prev.filter((c) => c.value !== value));
+  }
+
+  function updateColorStock(value: string, stock: number) {
+    setColors((prev) =>
+      prev.map((c) =>
+        c.value === value ? { ...c, stock: Math.max(0, stock) } : c,
+      ),
+    );
+  }
 
   async function onPickFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
+    if (!canAddMore) {
+      setError(`Máximo ${MAX_IMAGES} fotos por producto`);
+      return;
+    }
+
+    const selected = Array.from(fileList).slice(0, remainingSlots);
     setUploading(true);
     setError("");
     try {
       const data = new FormData();
-      Array.from(fileList).forEach((file) => data.append("files", file));
+      selected.forEach((file) => data.append("files", file));
       const res = await fetch("/api/admin/upload", {
         method: "POST",
         body: data,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Error al subir");
-      setImages((prev) => [...prev, ...(json.urls as string[])]);
+      setImages((prev) => [...prev, ...(json.urls as string[])].slice(0, MAX_IMAGES));
+      if (fileList.length > remainingSlots) {
+        setError(`Solo se agregaron ${remainingSlots} foto(s). Máximo ${MAX_IMAGES}.`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo subir la imagen");
     } finally {
@@ -57,6 +116,7 @@ export function ProductForm({ product, categories }: Props) {
 
   function removeImage(url: string) {
     setImages((prev) => prev.filter((img) => img !== url));
+    setError("");
   }
 
   async function onSubmit(e: FormEvent) {
@@ -69,8 +129,9 @@ export function ProductForm({ product, categories }: Props) {
       description: form.description,
       price: Number(form.price),
       compare_at: form.compare_at ? Number(form.compare_at) : null,
-      stock: Number(form.stock),
+      stock: hasColors ? colorsTotal : Number(form.stock),
       images,
+      colors,
       category_id: form.category_id || null,
       featured: form.featured,
       bestseller: form.bestseller,
@@ -126,7 +187,6 @@ export function ProductForm({ product, categories }: Props) {
         [
           ["price", "Precio"],
           ["compare_at", "Precio anterior (opcional)"],
-          ["stock", "Stock"],
         ] as const
       ).map(([key, label]) => (
         <label key={key} className="block text-sm">
@@ -134,12 +194,33 @@ export function ProductForm({ product, categories }: Props) {
           <input
             className="magi-input"
             type="number"
-            required={key === "price" || key === "stock"}
+            required={key === "price"}
             value={form[key]}
             onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
           />
         </label>
       ))}
+
+      {!hasColors ? (
+        <label className="block text-sm">
+          <span className="mb-1 block text-ink-soft">Stock</span>
+          <input
+            className="magi-input"
+            type="number"
+            required
+            min={0}
+            value={form.stock}
+            onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+          />
+          <span className="mt-1 block text-xs text-ink-soft">
+            Si cargás colores, el stock se maneja por color.
+          </span>
+        </label>
+      ) : (
+        <p className="rounded-lg border border-line bg-bg-deep/50 px-3 py-2 text-sm text-ink-soft">
+          Stock total (suma de colores): <strong className="text-ink">{colorsTotal}</strong>
+        </p>
+      )}
 
       <label className="block text-sm">
         <span className="mb-1 block text-ink-soft">Descripción</span>
@@ -150,20 +231,104 @@ export function ProductForm({ product, categories }: Props) {
         />
       </label>
 
+      <div className="space-y-2">
+        <p className="text-sm text-ink-soft">Colores disponibles</p>
+        <p className="text-xs text-ink-soft">
+          Agregá color + cantidad. El cliente ve cuántos hay y elige al comprar.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            className="magi-input min-w-[8rem] flex-1"
+            placeholder="Nombre del color"
+            value={colorDraft}
+            onChange={(e) => setColorDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addColor();
+              }
+            }}
+          />
+          <input
+            className="magi-input w-24"
+            type="number"
+            min={0}
+            placeholder="Cant."
+            value={colorStockDraft}
+            onChange={(e) => setColorStockDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addColor();
+              }
+            }}
+          />
+          <button type="button" className="magi-btn magi-btn-outline" onClick={addColor}>
+            Agregar color
+          </button>
+        </div>
+        {colors.length > 0 ? (
+          <ul className="space-y-2 pt-1">
+            {colors.map((color) => (
+              <li
+                key={color.value}
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-bg-deep px-3 py-2 text-sm"
+              >
+                <span className="min-w-[5rem] font-medium">{color.value}</span>
+                <label className="flex items-center gap-1 text-ink-soft">
+                  Cant.
+                  <input
+                    className="magi-input w-20 py-1"
+                    type="number"
+                    min={0}
+                    value={color.stock}
+                    onChange={(e) =>
+                      updateColorStock(color.value, Number(e.target.value) || 0)
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeColor(color.value)}
+                  className="ml-auto text-ink-soft hover:text-accent"
+                  aria-label={`Quitar ${color.value}`}
+                >
+                  Quitar
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-ink-soft">Sin colores cargados (opcional).</p>
+        )}
+      </div>
+
       <div className="space-y-3">
-        <p className="text-sm text-ink-soft">Fotos del producto</p>
+        <p className="text-sm text-ink-soft">
+          Fotos del producto{" "}
+          <span className="text-xs">
+            ({images.length}/{MAX_IMAGES})
+          </span>
+        </p>
+        <p className="text-xs text-ink-soft">
+          Hasta {MAX_IMAGES} fotos (útil para mostrar distintos colores).
+        </p>
 
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
             className="magi-btn"
-            disabled={uploading}
+            disabled={uploading || !canAddMore}
             onClick={() => fileRef.current?.click()}
           >
-            {uploading ? "Subiendo..." : "Elegir de galería / archivo"}
+            {uploading
+              ? "Subiendo..."
+              : canAddMore
+                ? "Elegir de galería / archivo"
+                : `Máximo ${MAX_IMAGES} fotos`}
           </button>
           <p className="self-center text-xs text-ink-soft">
-            JPG, PNG o WEBP · hasta 8MB · podés elegir varias
+            JPG, PNG o WEBP · hasta 8MB · máximo {MAX_IMAGES} fotos
           </p>
         </div>
 
@@ -178,19 +343,24 @@ export function ProductForm({ product, categories }: Props) {
 
         {images.length > 0 ? (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {images.map((url) => (
+            {images.map((url, index) => (
               <li
                 key={url}
                 className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-bg-deep"
               >
                 <Image
                   src={url}
-                  alt="Foto producto"
+                  alt={`Foto ${index + 1}`}
                   fill
                   className="object-cover"
                   sizes="160px"
                   unoptimized={url.startsWith("data:")}
                 />
+                {index === 0 && (
+                  <span className="absolute left-2 top-2 rounded bg-ink/80 px-2 py-0.5 text-[10px] text-white">
+                    Principal
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => removeImage(url)}
@@ -208,7 +378,7 @@ export function ProductForm({ product, categories }: Props) {
             className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line bg-bg-deep/50 px-4 py-10 text-sm text-ink-soft hover:border-accent hover:text-accent"
           >
             <span className="text-base font-medium text-ink">Agregar fotos</span>
-            <span>Abrí la galería o seleccioná un archivo de tu dispositivo</span>
+            <span>Hasta {MAX_IMAGES} fotos · galería o archivo</span>
           </button>
         )}
       </div>

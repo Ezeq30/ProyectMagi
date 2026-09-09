@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { dbGetProducts } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
@@ -34,10 +35,13 @@ export default async function AdminProductsPage() {
                 <td className="px-4 py-3">{formatPrice(p.price)}</td>
                 <td className="px-4 py-3">{p.stock}</td>
                 <td className="px-4 py-3">{p.active ? "Activo" : "Oculto"}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/productos/${p.id}`} className="text-accent underline">
-                    Editar
-                  </Link>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <Link href={`/admin/productos/${p.id}`} className="text-accent underline">
+                      Editar
+                    </Link>
+                    <DeleteProductButton id={p.id} name={p.name} />
+                  </div>
                 </td>
               </tr>
             ))}
