@@ -25,23 +25,6 @@
     --space-section: clamp(3rem, 6vw, 5.5rem);
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      color-scheme: dark;
-      --bg: #121212;
-      --bg-deep: #1a1a1a;
-      --card: #1e1e1e;
-      --card-text: #f5f2ec;
-      --card-muted: #a8a49c;
-      --ink: #f5f2ec;
-      --ink-soft: #b8b4ac;
-      --line: #2e2e2e;
-      --white: #f5f2ec;
-      --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-      --shadow-hover: 0 18px 48px rgba(0, 0, 0, 0.55);
-    }
-  }
-
   html[data-theme="dark"] {
     color-scheme: dark;
     --bg: #121212;

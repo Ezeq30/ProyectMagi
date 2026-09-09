@@ -28,13 +28,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = window.localStorage.getItem("magi-theme");
-    if (stored === "light" || stored === "dark") {
-      setThemeState(stored);
-      applyDomTheme(stored);
-      return;
-    }
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial: ThemeMode = prefersDark ? "dark" : "light";
+    const initial: ThemeMode = stored === "dark" ? "dark" : "light";
     setThemeState(initial);
     applyDomTheme(initial);
   }, []);

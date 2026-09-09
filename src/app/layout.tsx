@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
 };
 
-const themeBootScript = `(function(){try{var t=localStorage.getItem('magi-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.setAttribute('data-theme','dark');}else{document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();`;
+const themeBootScript = `(function(){try{var t=localStorage.getItem('magi-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
