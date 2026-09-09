@@ -588,6 +588,10 @@ export async function dbGetOrders(): Promise<Order[]> {
     coupon_code: o.coupon_code ? String(o.coupon_code) : null,
     mp_preference_id: o.mp_preference_id ? String(o.mp_preference_id) : null,
     mp_payment_id: o.mp_payment_id ? String(o.mp_payment_id) : null,
+    mp_money_release_date: o.mp_money_release_date
+      ? String(o.mp_money_release_date)
+      : null,
+    mp_status_detail: o.mp_status_detail ? String(o.mp_status_detail) : null,
     notes: String(o.notes ?? ""),
     created_at: String(o.created_at),
     items: (o.order_items ?? []).map((item: Record<string, unknown>) => ({
@@ -634,6 +638,10 @@ export async function dbGetOrderByNumber(orderNumber: string): Promise<Order | n
     coupon_code: data.coupon_code ? String(data.coupon_code) : null,
     mp_preference_id: data.mp_preference_id ? String(data.mp_preference_id) : null,
     mp_payment_id: data.mp_payment_id ? String(data.mp_payment_id) : null,
+    mp_money_release_date: data.mp_money_release_date
+      ? String(data.mp_money_release_date)
+      : null,
+    mp_status_detail: data.mp_status_detail ? String(data.mp_status_detail) : null,
     notes: String(data.notes ?? ""),
     created_at: String(data.created_at),
     items: (data.order_items ?? []).map((item: Record<string, unknown>) => ({
@@ -676,6 +684,8 @@ export async function dbCreateOrder(order: Order): Promise<void> {
     coupon_code: order.coupon_code,
     mp_preference_id: order.mp_preference_id,
     mp_payment_id: order.mp_payment_id,
+    mp_money_release_date: order.mp_money_release_date,
+    mp_status_detail: order.mp_status_detail,
     notes: order.notes,
   });
   if (error) throw error;
@@ -751,6 +761,10 @@ export async function dbUpdateOrderPayment(
   orderId: string,
   paymentId: string,
   status: Order["status"],
+  meta?: {
+    moneyReleaseDate?: string | null;
+    statusDetail?: string | null;
+  },
 ): Promise<void> {
   if (useLocalWrites()) {
     await updateStore((store) => {
@@ -760,6 +774,12 @@ export async function dbUpdateOrderPayment(
       if (!order) return;
       order.mp_payment_id = paymentId;
       order.status = status;
+      if (meta?.moneyReleaseDate !== undefined) {
+        order.mp_money_release_date = meta.moneyReleaseDate;
+      }
+      if (meta?.statusDetail !== undefined) {
+        order.mp_status_detail = meta.statusDetail;
+      }
     });
     if (status === "paid") {
       await dbApplyOrderStockDecrement(orderId);
@@ -768,6 +788,13 @@ export async function dbUpdateOrderPayment(
   }
 
   const sb = createServerDataClient();
+  const releasePatch: Record<string, unknown> = {};
+  if (meta?.moneyReleaseDate) {
+    releasePatch.mp_money_release_date = meta.moneyReleaseDate;
+  }
+  if (meta?.statusDetail != null) {
+    releasePatch.mp_status_detail = meta.statusDetail;
+  }
 
   if (status === "paid") {
     // Preferir UUID del pedido (external_reference de MP)
@@ -783,6 +810,9 @@ export async function dbUpdateOrderPayment(
         p_payment_id: paymentId,
       });
       if (error) throw error;
+      if (Object.keys(releasePatch).length) {
+        await sb.from("orders").update(releasePatch).eq("id", byId.id);
+      }
       return;
     }
   }
@@ -793,6 +823,7 @@ export async function dbUpdateOrderPayment(
       mp_payment_id: paymentId,
       status,
       updated_at: new Date().toISOString(),
+      ...releasePatch,
     })
     .or(`id.eq.${orderId},order_number.eq.${orderId}`);
 }

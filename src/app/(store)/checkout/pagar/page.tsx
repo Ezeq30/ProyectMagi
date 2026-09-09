@@ -4,10 +4,12 @@ import { dbGetOrderByNumber, dbGetSettings } from "@/lib/db";
 import { isMercadoPagoReady } from "@/lib/mercadopago";
 import { hasTransferPayment } from "@/lib/payment";
 
-type Props = { searchParams: Promise<{ order?: string }> };
+type Props = {
+  searchParams: Promise<{ order?: string; autostart?: string }>;
+};
 
 export default async function CheckoutPayPage({ searchParams }: Props) {
-  const { order: orderNumber } = await searchParams;
+  const { order: orderNumber, autostart } = await searchParams;
   if (!orderNumber) notFound();
 
   const [order, settings, mpReady] = await Promise.all([
@@ -39,6 +41,7 @@ export default async function CheckoutPayPage({ searchParams }: Props) {
       holder={settings.payment_holder}
       whatsapp={settings.whatsapp}
       mpReady={mpReady}
+      autoStartMp={autostart === "1"}
     />
   );
 }

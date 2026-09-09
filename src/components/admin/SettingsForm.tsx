@@ -79,6 +79,12 @@ export function SettingsForm({
             Para cobrar el monto directo en la app, pegá el Access Token de producción de
             Mercado Pago. Alias/CBU sirven para transferencia manual.
           </p>
+          <p className="mt-2 rounded-sm border border-line bg-card px-3 py-2 text-xs text-ink-soft">
+            En cuentas nuevas, Mercado Pago puede retener el dinero ~14–18 días en las
+            primeras ventas (aunque el cobro ya esté OK). Después suele liberar al
+            instante o en 24 h. Cuando figure “disponible”, retirá a tu CBU desde la app
+            de Mercado Pago.
+          </p>
           <p className="mt-2 text-xs">
             Estado pago online:{" "}
             <strong className={mpConfigured ? "text-success" : "text-red-700"}>

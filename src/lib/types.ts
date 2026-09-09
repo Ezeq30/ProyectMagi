@@ -99,6 +99,9 @@ export type Order = {
   coupon_code: string | null;
   mp_preference_id: string | null;
   mp_payment_id: string | null;
+  /** Fecha en que MP libera el dinero al vendedor (si la informa) */
+  mp_money_release_date: string | null;
+  mp_status_detail: string | null;
   notes: string;
   created_at: string;
   items: OrderItem[];

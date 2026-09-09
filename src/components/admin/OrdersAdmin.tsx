@@ -98,6 +98,29 @@ export function OrdersAdmin({ initial }: { initial: Order[] }) {
                 {formatPrice(order.subtotal)}
               </p>
               <p className="mt-1 font-semibold">{formatPrice(order.total)}</p>
+              {order.mp_payment_id && (
+                <p className="mt-2 text-xs text-ink-soft">
+                  MP pago: {order.mp_payment_id}
+                  {order.status === "paid" ? " · Cobrado en Mercado Pago" : ""}
+                </p>
+              )}
+              {order.mp_money_release_date && (
+                <p className="mt-1 text-xs text-gold">
+                  Disponible aprox.:{" "}
+                  {new Date(order.mp_money_release_date).toLocaleDateString("es-AR", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                  {order.mp_status_detail ? ` · ${order.mp_status_detail}` : ""}
+                </p>
+              )}
+              {order.status === "paid" && !order.mp_money_release_date && order.mp_payment_id && (
+                <p className="mt-1 text-xs text-ink-soft">
+                  Cobrado. La fecha de liberación la define Mercado Pago (cuentas nuevas:
+                  ~2 semanas).
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <select

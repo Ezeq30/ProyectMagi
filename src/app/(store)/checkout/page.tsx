@@ -90,7 +90,12 @@ export default function CheckoutPage() {
 
       clear();
 
-      if (data.payPage || data.transfer || data.init_point) {
+      if (data.init_point) {
+        window.location.href = data.init_point as string;
+        return;
+      }
+
+      if (data.payPage || data.transfer) {
         router.push(`/checkout/pagar?order=${data.orderNumber}`);
         return;
       }

@@ -8,13 +8,17 @@ import {
   type ShippingMethod,
 } from "@/lib/catalog";
 import { dbCreateOrder } from "@/lib/db";
-import { isMercadoPagoReady } from "@/lib/mercadopago";
+import {
+  createPreferenceForOrder,
+  isMercadoPagoReady,
+} from "@/lib/mercadopago";
 import {
   calcCashDiscount,
   CASH_DISCOUNT_PERCENT,
   hasTransferPayment,
   type CheckoutPaymentMethod,
 } from "@/lib/payment";
+import { createServerDataClient, hasServiceRole, useSupabaseData } from "@/lib/supabase/admin";
 import type { CartItem, Order } from "@/lib/types";
 
 function parseShippingMethod(value: unknown): ShippingMethod {
@@ -105,6 +109,8 @@ export async function POST(request: Request) {
       coupon_code: coupon?.code ?? null,
       mp_preference_id: null,
       mp_payment_id: null,
+      mp_money_release_date: null,
+      mp_status_detail: null,
       notes,
       created_at: new Date().toISOString(),
       items: items.map((item) => ({
@@ -121,10 +127,32 @@ export async function POST(request: Request) {
 
     await dbCreateOrder(order);
 
+    let initPoint: string | null = null;
+    if (!payCash && mpReady) {
+      try {
+        const pref = await createPreferenceForOrder(order);
+        initPoint = pref.init_point;
+        order.mp_preference_id = pref.id;
+        if (useSupabaseData() && hasServiceRole()) {
+          try {
+            const sb = createServerDataClient();
+            await sb
+              .from("orders")
+              .update({ mp_preference_id: pref.id })
+              .eq("id", order.id);
+          } catch {
+            /* ok */
+          }
+        }
+      } catch (e) {
+        console.error("MP preference at checkout:", e);
+      }
+    }
+
     return NextResponse.json({
       orderId,
       orderNumber,
-      init_point: null,
+      init_point: initPoint,
       transfer,
       payPage,
       demo: !payPage,
