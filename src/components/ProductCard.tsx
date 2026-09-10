@@ -105,9 +105,10 @@ export function ProductCard({ product }: Props) {
           )}
         </div>
 
+        {/* Altura fija de 2 líneas para alinear corazones entre cards */}
         <Link
           href={`/productos/${product.slug}`}
-          className="mt-1.5 block text-[13px] leading-snug tracking-wide text-ink sm:text-sm"
+          className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-[13px] leading-snug tracking-wide text-ink sm:min-h-[2.75rem] sm:text-sm"
         >
           {product.name}
           {selected ? (
@@ -115,16 +116,16 @@ export function ProductCard({ product }: Props) {
           ) : null}
         </Link>
 
-        {colorVariants.length > 0 ? (
-          <div className="mt-2.5 min-h-[1.75rem]">
+        <div className="mt-2.5 flex min-h-7 items-start">
+          {colorVariants.length > 0 ? (
             <ColorSwatches
               colors={colorVariants}
               selectedId={selectedId}
               onSelect={setSelectedId}
               size="md"
             />
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         {!outOfStock && (
           <button
