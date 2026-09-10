@@ -42,7 +42,7 @@ export default async function HowToBuyPage() {
         </li>
       </ol>
 
-      <div className="mt-10 rounded-xl border border-line bg-white p-5">
+      <div className="mt-10 rounded-xl border border-line bg-card p-5">
         <PaymentMethodsStrip />
       </div>
     </div>

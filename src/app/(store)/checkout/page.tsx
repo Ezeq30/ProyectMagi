@@ -144,11 +144,11 @@ export default function CheckoutPage() {
             </label>
           ))}
 
-          <div className="rounded-xl border border-line bg-white p-4">
+          <div className="rounded-xl border border-line bg-card p-4">
             <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
           </div>
 
-          <fieldset className="space-y-3 rounded-xl border border-line bg-white p-4">
+          <fieldset className="space-y-3 rounded-xl border border-line bg-card p-4">
             <legend className="px-1 text-sm font-medium text-ink">¿Cómo querés el envío?</legend>
             <label className="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-[:checked]:border-accent">
               <input
@@ -243,7 +243,7 @@ export default function CheckoutPage() {
         </form>
       </div>
 
-      <aside className="h-fit rounded-xl border border-line bg-white p-5">
+      <aside className="h-fit rounded-xl border border-line bg-card p-5">
         <h2 className="font-[family-name:var(--font-display)] text-2xl">Resumen</h2>
         <ul className="mt-4 space-y-2 text-sm">
           {items.map((item) => (

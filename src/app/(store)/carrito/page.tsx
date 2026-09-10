@@ -84,7 +84,7 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <div className="rounded-xl border border-line bg-white p-4">
+          <div className="rounded-xl border border-line bg-card p-4">
             <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
           </div>
 

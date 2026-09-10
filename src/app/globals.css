@@ -34,8 +34,9 @@
     --card-muted: #a8a49c;
     --ink: #f5f2ec;
     --ink-soft: #b8b4ac;
-    --line: #2e2e2e;
-    --white: #f5f2ec;
+    --line: #3a3a3a;
+    /* Mantener blanco real para badges; superficies usan --card */
+    --white: #ffffff;
     --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
     --shadow-hover: 0 18px 48px rgba(0, 0, 0, 0.55);
   }
@@ -248,7 +249,7 @@
     padding: 0.75rem 1rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: var(--card);
+    background: var(--bg);
     color: var(--ink);
     font: inherit;
   }
@@ -256,6 +257,15 @@
   .magi-input:focus {
     outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
     border-color: var(--accent);
+  }
+
+  html[data-theme="dark"] .magi-input {
+    background: var(--bg-deep);
+    border-color: #4a4a4a;
+  }
+
+  html[data-theme="dark"] .magi-input::placeholder {
+    color: color-mix(in srgb, var(--ink-soft) 80%, transparent);
   }
 
   .magi-marquee-track {
