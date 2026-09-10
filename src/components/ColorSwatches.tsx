@@ -8,7 +8,8 @@ type Props = {
   selectedId?: string;
   onSelect: (id: string) => void;
   size?: "sm" | "md";
-  showStockInTitle?: boolean;
+  /** En ficha: mostrar nombre junto al círculo */
+  showLabels?: boolean;
 };
 
 export function ColorSwatches({
@@ -16,7 +17,7 @@ export function ColorSwatches({
   selectedId,
   onSelect,
   size = "sm",
-  showStockInTitle = true,
+  showLabels = false,
 }: Props) {
   if (colors.length === 0) return null;
 
@@ -39,40 +40,50 @@ export function ColorSwatches({
             type="button"
             role="option"
             aria-selected={active}
-            aria-label={
-              showStockInTitle
-                ? `${v.value}${soldOut ? " (sin stock)" : ` (${v.stock})`}`
-                : v.value
-            }
-            title={
-              showStockInTitle
-                ? `${v.value}${soldOut ? " — sin stock" : ` — ${v.stock} u.`}`
-                : v.value
-            }
+            aria-label={`${v.value}${soldOut ? " (sin stock)" : ` (${v.stock} disponibles)`}`}
+            title={`${v.value}${soldOut ? " — sin stock" : ` — ${v.stock} u.`}`}
             disabled={soldOut}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               if (!soldOut) onSelect(v.id);
             }}
-            className={`relative shrink-0 rounded-full border-2 transition ${dim} ${
-              soldOut
-                ? "cursor-not-allowed opacity-40"
-                : "cursor-pointer hover:scale-105"
-            } ${
-              active
-                ? "border-ink shadow-[0_0_0_1px_var(--ink)]"
-                : light
-                  ? "border-line"
-                  : "border-transparent outline outline-1 outline-black/20"
+            className={`inline-flex items-center gap-2 transition ${
+              showLabels
+                ? `rounded-full border px-2.5 py-1.5 text-sm ${
+                    soldOut
+                      ? "cursor-not-allowed border-line/50 opacity-45"
+                      : active
+                        ? "border-ink bg-bg-deep"
+                        : "border-line hover:border-ink/50"
+                  }`
+                : "shrink-0"
             }`}
-            style={{ backgroundColor: bg }}
           >
-            {soldOut && (
-              <span
-                className="absolute inset-[4px] rotate-45 border-t border-ink/60"
-                aria-hidden
-              />
+            <span
+              className={`relative shrink-0 rounded-full ${dim} ${
+                soldOut ? "opacity-50" : ""
+              } ${
+                active && !showLabels
+                  ? "ring-2 ring-ink ring-offset-2 ring-offset-[color:var(--card)]"
+                  : ""
+              } ${
+                light
+                  ? "border border-line shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
+                  : "border border-black/20"
+              }`}
+              style={{ backgroundColor: bg }}
+              aria-hidden
+            >
+              {soldOut && (
+                <span className="absolute inset-[3px] rotate-45 border-t border-ink/70" />
+              )}
+            </span>
+            {showLabels && (
+              <span className={soldOut ? "line-through text-ink-soft" : ""}>
+                {v.value}
+                <span className="text-ink-soft"> ({v.stock})</span>
+              </span>
             )}
           </button>
         );
