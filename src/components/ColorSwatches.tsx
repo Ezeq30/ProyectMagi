@@ -8,9 +8,38 @@ type Props = {
   selectedId?: string;
   onSelect: (id: string) => void;
   size?: "sm" | "md";
-  /** En ficha: mostrar nombre junto al círculo */
   showLabels?: boolean;
 };
+
+/** Corazón SVG relleno con el color del variante. */
+function HeartIcon({
+  fill,
+  stroke,
+  strokeWidth,
+  className,
+}: {
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        d="M12 21s-6.7-4.35-9.33-8.04C.74 10.3 1.1 6.9 3.6 5.2c2.1-1.4 4.7-.9 6.1 1.1L12 9l2.3-2.7c1.4-2 4-2.5 6.1-1.1 2.5 1.7 2.86 5.1.93 7.76C18.7 16.65 12 21 12 21z"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export function ColorSwatches({
   colors,
@@ -34,6 +63,13 @@ export function ColorSwatches({
         const active = selectedId === v.id;
         const bg = swatchCss(v.value);
         const light = isLightSwatch(bg);
+        const stroke = active
+          ? "var(--ink)"
+          : light
+            ? "rgba(0,0,0,0.28)"
+            : "rgba(0,0,0,0.15)";
+        const strokeWidth = active ? 1.6 : light ? 1.2 : 0.9;
+
         return (
           <button
             key={v.id}
@@ -57,26 +93,21 @@ export function ColorSwatches({
                         ? "border-ink bg-bg-deep"
                         : "border-line hover:border-ink/50"
                   }`
-                : "shrink-0"
+                : "shrink-0 hover:scale-110"
             }`}
           >
-            <span
-              className={`relative shrink-0 rounded-full ${dim} ${
-                soldOut ? "opacity-50" : ""
-              } ${
-                active && !showLabels
-                  ? "ring-1 ring-ink ring-offset-1 ring-offset-[color:var(--card)]"
-                  : ""
-              } ${
-                light
-                  ? "border border-line shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
-                  : "border border-black/20"
-              }`}
-              style={{ backgroundColor: bg }}
-              aria-hidden
-            >
+            <span className={`relative inline-flex ${dim} ${soldOut ? "opacity-45" : ""}`}>
+              <HeartIcon
+                fill={bg}
+                stroke={stroke}
+                strokeWidth={strokeWidth}
+                className="h-full w-full"
+              />
               {soldOut && (
-                <span className="absolute inset-[2px] rotate-45 border-t border-ink/70" />
+                <span
+                  className="pointer-events-none absolute inset-[15%] rotate-45 border-t border-ink/70"
+                  aria-hidden
+                />
               )}
             </span>
             {showLabels && (

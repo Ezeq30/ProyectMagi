@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { HeroSlider } from "@/components/HeroSlider";
+import { HomeHeroCopy } from "@/components/HomeHeroCopy";
 import { ProductGrid } from "@/components/ProductGrid";
 import { Reveal } from "@/components/Reveal";
 import { getCategories, getProducts, getSettings } from "@/lib/catalog";
@@ -20,25 +21,10 @@ export default async function HomePage() {
   return (
     <>
       <section className="grid grid-cols-1 lg:min-h-[calc(100svh-7rem)] lg:grid-cols-2">
-        <div className="order-2 flex flex-col justify-center bg-bg px-4 py-10 sm:px-10 sm:py-16 lg:order-1 lg:px-14 xl:px-20">
-          <p className="magi-fade-up text-[10px] font-semibold uppercase tracking-[0.2em] text-gold sm:text-[11px] sm:tracking-[0.28em]">
-            Accesorios Tortugas Online
-          </p>
-          <h1 className="magi-fade-up-delay mt-3 max-w-xl font-[family-name:var(--font-display)] text-[2rem] leading-[1.08] tracking-tight text-ink sm:mt-4 sm:text-5xl md:text-6xl lg:text-[3.75rem] lg:leading-[1.05]">
-            {settings.hero_headline}
-          </h1>
-          <p className="magi-fade-up-delay-2 mt-4 max-w-md text-[0.95rem] leading-relaxed text-ink-soft sm:mt-5 sm:text-lg">
-            {settings.hero_sub}
-          </p>
-          <div className="magi-fade-up-delay-2 mt-7 flex w-full flex-col gap-2.5 sm:mt-8 sm:flex-row sm:flex-wrap sm:gap-3">
-            <Link href="/productos" className="magi-btn w-full justify-center sm:w-auto">
-              Ver productos
-            </Link>
-            <Link href="/como-comprar" className="magi-btn magi-btn-outline w-full justify-center sm:w-auto">
-              Cómo comprar
-            </Link>
-          </div>
-        </div>
+        <HomeHeroCopy
+          headline={settings.hero_headline}
+          sub={settings.hero_sub}
+        />
         <div className="relative order-1 h-[min(52vh,420px)] min-h-[240px] sm:h-[min(55vh,520px)] lg:order-2 lg:h-auto lg:min-h-[calc(100svh-7rem)]">
           <HeroSlider
             images={settings.hero_slides}
@@ -47,7 +33,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <Reveal as="section" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20">
+      <Reveal as="section" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20" from="left">
         <div className="mb-7 flex items-end justify-between gap-4 sm:mb-10">
           <h2 className="font-[family-name:var(--font-display)] text-[1.75rem] tracking-tight sm:text-4xl">
             Colecciones
@@ -60,16 +46,23 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-6">
-          {mainCategories.map((c) => (
-            <Link
+          {mainCategories.map((c, i) => (
+            <Reveal
               key={c.id}
-              href={`/categoria/${c.slug}`}
-              className="group flex min-h-[4.5rem] flex-col items-center justify-center border border-line bg-card px-2 py-4 text-center transition hover:border-ink hover:shadow-[var(--shadow)] sm:min-h-28 sm:px-3 sm:py-6"
+              as="div"
+              from="up"
+              delay={0.04 * i}
+              className="h-full"
             >
-              <span className="text-[10px] font-semibold uppercase leading-snug tracking-[0.12em] text-ink transition group-hover:text-accent sm:text-xs sm:tracking-[0.16em]">
-                {c.name}
-              </span>
-            </Link>
+              <Link
+                href={`/categoria/${c.slug}`}
+                className="group flex min-h-[4.5rem] h-full flex-col items-center justify-center border border-line bg-card px-2 py-4 text-center transition hover:border-ink hover:shadow-[var(--shadow)] sm:min-h-28 sm:px-3 sm:py-6"
+              >
+                <span className="text-[10px] font-semibold uppercase leading-snug tracking-[0.12em] text-ink transition group-hover:text-accent sm:text-xs sm:tracking-[0.16em]">
+                  {c.name}
+                </span>
+              </Link>
+            </Reveal>
           ))}
         </div>
       </Reveal>
@@ -80,7 +73,7 @@ export default async function HomePage() {
         products={featured}
       />
 
-      <Reveal as="section" className="border-y border-line bg-bg-deep">
+      <Reveal as="section" className="border-y border-line bg-bg-deep" from="right">
         <div className="mx-auto grid max-w-7xl gap-0 md:grid-cols-2 md:items-stretch">
           <div className="relative min-h-[16rem] sm:min-h-80 md:min-h-[28rem]">
             <Image
@@ -117,7 +110,7 @@ export default async function HomePage() {
         products={bestsellers}
       />
 
-      <Reveal as="section" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20">
+      <Reveal as="section" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20" from="up">
         <div className="grid gap-8 sm:gap-10 md:grid-cols-3 md:gap-8">
           {[
             {
@@ -132,13 +125,17 @@ export default async function HomePage() {
               title: "Atención personalizada",
               body: "Escribinos por WhatsApp al 11 3578-7669.",
             },
-          ].map((item) => (
-            <div key={item.title} className="border-t border-line pt-5 sm:pt-6">
-              <h3 className="font-[family-name:var(--font-display)] text-xl tracking-tight sm:text-2xl">
-                {item.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:mt-3">{item.body}</p>
-            </div>
+          ].map((item, i) => (
+            <Reveal key={item.title} as="div" from="up" delay={0.08 * i}>
+              <div className="border-t border-line pt-5 sm:pt-6">
+                <h3 className="font-[family-name:var(--font-display)] text-xl tracking-tight sm:text-2xl">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-soft sm:mt-3">
+                  {item.body}
+                </p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </Reveal>

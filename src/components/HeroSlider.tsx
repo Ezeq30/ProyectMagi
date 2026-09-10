@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { motion, useReducedMotion } from "motion/react";
 
 type Props = {
   images: string[];
@@ -40,6 +41,7 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
 export function HeroSlider({ images, className = "" }: Props) {
   const slides = images.length > 0 ? images : DEFAULT_SLIDES;
   const [index, setIndex] = useState(0);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -55,24 +57,41 @@ export function HeroSlider({ images, className = "" }: Props) {
 
   return (
     <div className={`group/slider relative h-full w-full overflow-hidden bg-bg-deep ${className}`}>
-      {slides.map((src, i) => (
-        <div
-          key={src}
-          className={`absolute inset-0 transition-opacity duration-700 ease-out ${
-            i === index ? "opacity-100" : "opacity-0"
-          }`}
-          aria-hidden={i !== index}
-        >
-          <Image
-            src={src}
-            alt=""
-            fill
-            priority={i === 0}
-            className="object-cover object-center"
-            sizes="(max-width:768px) 100vw, 55vw"
-          />
-        </div>
-      ))}
+      {slides.map((src, i) => {
+        const active = i === index;
+        return (
+          <div
+            key={src}
+            className={`absolute inset-0 transition-opacity duration-700 ease-out ${
+              active ? "opacity-100" : "opacity-0"
+            }`}
+            aria-hidden={!active}
+          >
+            <motion.div
+              className="absolute inset-0"
+              animate={
+                active && !reduce
+                  ? { scale: [1, 1.06] }
+                  : { scale: 1 }
+              }
+              transition={
+                active && !reduce
+                  ? { duration: 20, ease: "linear", repeat: Infinity, repeatType: "reverse" }
+                  : { duration: 0.4 }
+              }
+            >
+              <Image
+                src={src}
+                alt=""
+                fill
+                priority={i === 0}
+                className="object-cover object-center"
+                sizes="(max-width:768px) 100vw, 55vw"
+              />
+            </motion.div>
+          </div>
+        );
+      })}
 
       {slides.length > 1 && (
         <>
