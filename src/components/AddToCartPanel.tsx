@@ -88,7 +88,7 @@ export function AddToCartPanel({ product }: { product: Product }) {
               colors={colorVariants}
               selectedId={variantId}
               onSelect={setVariantId}
-              size="md"
+              size="sm"
               showLabels
             />
           </div>
@@ -97,23 +97,23 @@ export function AddToCartPanel({ product }: { product: Product }) {
 
       {!out && (
         <div>
-          <p className="mb-2 text-sm text-ink-soft">Cantidad</p>
+          <p className="mb-1.5 text-xs text-ink-soft">Cantidad</p>
           <div className="inline-flex items-center border border-line">
             <button
               type="button"
-              className="flex h-11 w-11 items-center justify-center text-lg text-ink transition hover:bg-bg-deep disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center text-base text-ink transition hover:bg-bg-deep disabled:opacity-40"
               aria-label="Menos"
               disabled={qty <= 1}
               onClick={() => bump(-1)}
             >
               −
             </button>
-            <span className="min-w-[2.5rem] text-center text-base font-semibold tabular-nums">
+            <span className="min-w-[2rem] text-center text-sm font-semibold tabular-nums">
               {qty}
             </span>
             <button
               type="button"
-              className="flex h-11 w-11 items-center justify-center text-lg text-ink transition hover:bg-bg-deep disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center text-base text-ink transition hover:bg-bg-deep disabled:opacity-40"
               aria-label="Más"
               disabled={qty >= stock}
               onClick={() => bump(1)}
@@ -121,7 +121,7 @@ export function AddToCartPanel({ product }: { product: Product }) {
               +
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-ink-soft">Máximo {stock} u.</p>
+          <p className="mt-1 text-[11px] text-ink-soft">Máximo {stock} u.</p>
         </div>
       )}
 

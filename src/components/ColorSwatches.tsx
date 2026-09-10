@@ -21,11 +21,11 @@ export function ColorSwatches({
 }: Props) {
   if (colors.length === 0) return null;
 
-  const dim = size === "md" ? "h-9 w-9" : "h-6 w-6 sm:h-7 sm:w-7";
+  const dim = size === "md" ? "h-5 w-5" : "h-4 w-4";
 
   return (
     <div
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-1.5"
       role="listbox"
       aria-label="Colores"
     >
@@ -48,9 +48,9 @@ export function ColorSwatches({
               e.stopPropagation();
               if (!soldOut) onSelect(v.id);
             }}
-            className={`inline-flex items-center gap-2 transition ${
+            className={`inline-flex items-center gap-1.5 transition ${
               showLabels
-                ? `rounded-full border px-2.5 py-1.5 text-sm ${
+                ? `rounded-full border px-1.5 py-1 text-[11px] sm:text-xs ${
                     soldOut
                       ? "cursor-not-allowed border-line/50 opacity-45"
                       : active
@@ -65,7 +65,7 @@ export function ColorSwatches({
                 soldOut ? "opacity-50" : ""
               } ${
                 active && !showLabels
-                  ? "ring-2 ring-ink ring-offset-2 ring-offset-[color:var(--card)]"
+                  ? "ring-1 ring-ink ring-offset-1 ring-offset-[color:var(--card)]"
                   : ""
               } ${
                 light
@@ -76,7 +76,7 @@ export function ColorSwatches({
               aria-hidden
             >
               {soldOut && (
-                <span className="absolute inset-[3px] rotate-45 border-t border-ink/70" />
+                <span className="absolute inset-[2px] rotate-45 border-t border-ink/70" />
               )}
             </span>
             {showLabels && (
