@@ -6,7 +6,7 @@ import { formatPrice } from "@/lib/format";
 import {
   buildCustomerOrderMessage,
   buildSellerOrderMessage,
-} from "@/lib/order-notify";
+} from "@/lib/order-messages";
 import { whatsappUrl } from "@/lib/whatsapp";
 import type { Order, OrderStatus } from "@/lib/types";
 
