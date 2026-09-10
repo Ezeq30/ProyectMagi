@@ -11,35 +11,6 @@ type Props = {
   showLabels?: boolean;
 };
 
-function HeartIcon({
-  fill,
-  stroke,
-  strokeWidth,
-  className,
-}: {
-  fill: string;
-  stroke: string;
-  strokeWidth: number;
-  className?: string;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      aria-hidden
-      focusable="false"
-    >
-      <path
-        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function ColorSwatches({
   colors,
   selectedId,
@@ -49,8 +20,7 @@ export function ColorSwatches({
 }: Props) {
   if (colors.length === 0) return null;
 
-  // Más visibles: cards ~22px, ficha ~26px
-  const dim = size === "md" ? "h-7 w-7" : "h-[1.35rem] w-[1.35rem] sm:h-6 sm:w-6";
+  const dim = size === "md" ? "h-6 w-6" : "h-[1.15rem] w-[1.15rem] sm:h-5 sm:w-5";
 
   return (
     <div
@@ -63,12 +33,9 @@ export function ColorSwatches({
         const active = selectedId === v.id;
         const bg = swatchCss(v.value);
         const light = isLightSwatch(bg);
-        const stroke = active
-          ? "var(--ink)"
-          : light
-            ? "rgba(0,0,0,0.35)"
-            : "rgba(0,0,0,0.2)";
-        const strokeWidth = active ? 1.4 : 1;
+        const border = light
+          ? "rgba(0,0,0,0.18)"
+          : "rgba(0,0,0,0.12)";
 
         return (
           <button
@@ -94,17 +61,21 @@ export function ColorSwatches({
                         : "border-line hover:border-ink/50"
                   }`
                 : `shrink-0 rounded-full p-0.5 ${
-                    active ? "bg-bg-deep ring-1 ring-ink/40" : "hover:scale-110"
+                    active
+                      ? "ring-1 ring-ink/45 ring-offset-2 ring-offset-card"
+                      : "hover:opacity-80"
                   }`
             }`}
           >
-            <span className={`relative inline-flex ${dim} ${soldOut ? "opacity-45" : ""}`}>
-              <HeartIcon
-                fill={bg}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                className="h-full w-full drop-shadow-sm"
-              />
+            <span
+              className={`relative inline-block shrink-0 rounded-full ${dim} ${
+                soldOut ? "opacity-45" : ""
+              }`}
+              style={{
+                backgroundColor: bg,
+                boxShadow: `inset 0 0 0 1px ${border}`,
+              }}
+            >
               {soldOut && (
                 <span
                   className="pointer-events-none absolute inset-[18%] rotate-45 border-t-2 border-ink/70"
