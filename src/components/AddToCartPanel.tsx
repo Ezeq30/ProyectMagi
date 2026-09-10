@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ColorSwatches } from "@/components/ColorSwatches";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { PaymentMethodsStrip } from "@/components/PaymentMethodsStrip";
@@ -27,6 +27,7 @@ export function AddToCartPanel({ product }: { product: Product }) {
   const firstAvailable =
     colorVariants.find((v) => v.stock > 0)?.id ?? colorVariants[0]?.id;
   const [variantId, setVariantId] = useState(firstAvailable);
+  const [qty, setQty] = useState(1);
   const [paymentMethod, setPaymentMethod] =
     useState<CheckoutPaymentMethod>(cartPaymentMethod);
   const selected = useMemo(
@@ -47,6 +48,19 @@ export function AddToCartPanel({ product }: { product: Product }) {
     selectedIndex,
     "",
   );
+  const lineCash = cashPrice(product.price * qty);
+
+  useEffect(() => {
+    setQty(1);
+  }, [variantId]);
+
+  useEffect(() => {
+    if (qty > stock && stock > 0) setQty(stock);
+  }, [stock, qty]);
+
+  function bump(delta: number) {
+    setQty((q) => Math.min(stock, Math.max(1, q + delta)));
+  }
 
   return (
     <div className="space-y-5">
@@ -75,8 +89,39 @@ export function AddToCartPanel({ product }: { product: Product }) {
               selectedId={variantId}
               onSelect={setVariantId}
               size="md"
+              showLabels
             />
           </div>
+        </div>
+      )}
+
+      {!out && (
+        <div>
+          <p className="mb-2 text-sm text-ink-soft">Cantidad</p>
+          <div className="inline-flex items-center border border-line">
+            <button
+              type="button"
+              className="flex h-11 w-11 items-center justify-center text-lg text-ink transition hover:bg-bg-deep disabled:opacity-40"
+              aria-label="Menos"
+              disabled={qty <= 1}
+              onClick={() => bump(-1)}
+            >
+              −
+            </button>
+            <span className="min-w-[2.5rem] text-center text-base font-semibold tabular-nums">
+              {qty}
+            </span>
+            <button
+              type="button"
+              className="flex h-11 w-11 items-center justify-center text-lg text-ink transition hover:bg-bg-deep disabled:opacity-40"
+              aria-label="Más"
+              disabled={qty >= stock}
+              onClick={() => bump(1)}
+            >
+              +
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs text-ink-soft">Máximo {stock} u.</p>
         </div>
       )}
 
@@ -96,7 +141,7 @@ export function AddToCartPanel({ product }: { product: Product }) {
               name: product.name,
               price: product.price,
               image: cartImage || product.images[0] || "",
-              quantity: 1,
+              quantity: qty,
               maxStock: stock,
               variantId: selected?.id,
               variantLabel: selected ? `Color: ${selected.value}` : undefined,
@@ -108,8 +153,8 @@ export function AddToCartPanel({ product }: { product: Product }) {
         {out
           ? "Sin stock"
           : paymentMethod === "cash"
-            ? `Agregar · efectivo ${formatPrice(priceCash)}`
-            : "Agregar al carrito"}
+            ? `Agregar ${qty} · efectivo ${formatPrice(lineCash)}`
+            : `Agregar ${qty} al carrito`}
       </button>
     </div>
   );
