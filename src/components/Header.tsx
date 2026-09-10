@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { HeaderSearch } from "@/components/HeaderSearch";
 import { useThemeMode } from "@/components/ThemeProvider";
 import { useCart } from "@/lib/cart/store";
 import type { Category } from "@/lib/types";
@@ -181,6 +182,7 @@ export function Header({ categories }: Props) {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:ml-3">
+          <HeaderSearch />
           <ThemeToggle />
           <button
             type="button"
@@ -206,6 +208,9 @@ export function Header({ categories }: Props) {
 
       {menuOpen && (
         <div className="max-h-[min(70vh,calc(100dvh-3.5rem))] overflow-y-auto border-t border-line bg-bg-deep px-4 py-4 lg:hidden">
+          <div className="mb-3">
+            <HeaderSearch compact />
+          </div>
           <div className="flex flex-col gap-0.5 text-sm">
             <Link
               href="/productos"

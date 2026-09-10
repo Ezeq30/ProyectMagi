@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/format";
+import {
+  buildCustomerOrderMessage,
+  buildSellerOrderMessage,
+} from "@/lib/order-notify";
+import { whatsappUrl } from "@/lib/whatsapp";
 import type { Order, OrderStatus } from "@/lib/types";
 
 const STATUSES: { value: OrderStatus; label: string }[] = [
@@ -13,7 +18,13 @@ const STATUSES: { value: OrderStatus; label: string }[] = [
   { value: "refunded", label: "Reembolsado" },
 ];
 
-export function OrdersAdmin({ initial }: { initial: Order[] }) {
+export function OrdersAdmin({
+  initial,
+  sellerWhatsapp,
+}: {
+  initial: Order[];
+  sellerWhatsapp: string;
+}) {
   const router = useRouter();
   const [orders, setOrders] = useState(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -122,43 +133,76 @@ export function OrdersAdmin({ initial }: { initial: Order[] }) {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <select
-                className="magi-input w-auto min-w-[9rem]"
-                value={order.status}
-                disabled={busyId === order.id}
-                onChange={(e) => setStatus(order.id, e.target.value as OrderStatus)}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={busyId === order.id}
-                onClick={() => remove(order.id, order.order_number)}
-                className="inline-flex items-center justify-center rounded-md p-2 text-ink-soft transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                aria-label={`Eliminar pedido ${order.order_number}`}
-                title="Eliminar"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <select
+                  className="magi-input w-auto min-w-[9rem]"
+                  value={order.status}
+                  disabled={busyId === order.id}
+                  onChange={(e) => setStatus(order.id, e.target.value as OrderStatus)}
                 >
-                  <path d="M3 6h18" />
-                  <path d="M8 6V4h8v2" />
-                  <path d="M19 6l-1 14H6L5 6" />
-                  <path d="M10 11v6M14 11v6" />
-                </svg>
-              </button>
+                  {STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={busyId === order.id}
+                  onClick={() => remove(order.id, order.order_number)}
+                  className="inline-flex items-center justify-center rounded-md p-2 text-ink-soft transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                  aria-label={`Eliminar pedido ${order.order_number}`}
+                  title="Eliminar"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex flex-wrap justify-end gap-2 text-xs">
+                <a
+                  href={whatsappUrl(
+                    buildCustomerOrderMessage(
+                      order,
+                      order.status === "shipped" ? "shipped" : "ready",
+                    ),
+                    order.customer_phone,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-line px-3 py-1.5 text-accent hover:bg-bg-deep"
+                >
+                  WhatsApp cliente
+                </a>
+                <a
+                  href={whatsappUrl(
+                    buildSellerOrderMessage(
+                      order,
+                      order.status === "paid" ? "paid" : "created",
+                    ),
+                    sellerWhatsapp,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-line px-3 py-1.5 text-ink-soft hover:bg-bg-deep"
+                  title="Abrí este chat en tu WhatsApp para reenviar el resumen"
+                >
+                  Resumen WA
+                </a>
+              </div>
             </div>
           </div>
           <ul className="mt-3 space-y-1 text-sm text-ink-soft">

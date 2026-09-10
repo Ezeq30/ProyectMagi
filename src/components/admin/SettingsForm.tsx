@@ -69,6 +69,13 @@ export function SettingsForm({
               onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
             />
           )}
+          {key === "whatsapp" && (
+            <span className="mt-1 block text-xs text-ink-soft">
+              A este número llegan los avisos de pedido si configurás{" "}
+              <code className="text-[11px]">CALLMEBOT_API_KEY</code> o{" "}
+              <code className="text-[11px]">ORDER_NOTIFY_WEBHOOK</code> en Vercel.
+            </span>
+          )}
         </label>
       ))}
 

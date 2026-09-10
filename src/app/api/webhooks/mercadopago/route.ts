@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { dbUpdateOrderPayment } from "@/lib/db";
+import { dbGetOrder, dbUpdateOrderPayment } from "@/lib/db";
 import { resolveMpAccessToken } from "@/lib/mercadopago";
+import { notifySellerOrder } from "@/lib/order-notify";
 
 async function extractPaymentId(request: Request): Promise<string | null> {
   const url = new URL(request.url);
@@ -50,6 +51,12 @@ async function processPayment(paymentId: string) {
       moneyReleaseDate: moneyRelease,
       statusDetail,
     });
+
+    if (orderStatus === "paid") {
+      void dbGetOrder(String(orderId))
+        .then((order) => (order ? notifySellerOrder(order, "paid") : null))
+        .catch((e) => console.error("notifySellerOrder paid:", e));
+    }
   }
 
   return { ok: true, status };

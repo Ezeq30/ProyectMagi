@@ -4,9 +4,10 @@ import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { dbGetProducts } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
+import { isProductLowStock, productMinStock } from "@/lib/stock";
 
 export default async function AdminProductsPage() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  if (!(await isAdminAuthenticated())) redirect("/login");
   const products = await dbGetProducts({ includeInactive: true, activeOnly: false });
 
   return (
@@ -29,22 +30,47 @@ export default async function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-line/70">
-                <td className="px-4 py-3">{p.name}</td>
-                <td className="px-4 py-3">{formatPrice(p.price)}</td>
-                <td className="px-4 py-3">{p.stock}</td>
-                <td className="px-4 py-3">{p.active ? "Activo" : "Oculto"}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-3">
-                    <Link href={`/admin/productos/${p.id}`} className="text-accent underline">
-                      Editar
-                    </Link>
-                    <DeleteProductButton id={p.id} name={p.name} />
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {products.map((p) => {
+              const low = isProductLowStock(p);
+              const min = productMinStock(p);
+              return (
+                <tr key={p.id} className="border-b border-line/70">
+                  <td className="px-4 py-3">
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {p.name}
+                      {low && (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                            min === 0
+                              ? "bg-red-100 text-red-800"
+                              : "bg-amber-100 text-amber-900"
+                          }`}
+                        >
+                          {min === 0 ? "Sin stock" : "Stock bajo"}
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">{formatPrice(p.price)}</td>
+                  <td
+                    className={`px-4 py-3 ${
+                      low ? (min === 0 ? "font-semibold text-red-700" : "text-amber-800") : ""
+                    }`}
+                  >
+                    {p.stock}
+                  </td>
+                  <td className="px-4 py-3">{p.active ? "Activo" : "Oculto"}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-3">
+                      <Link href={`/admin/productos/${p.id}`} className="text-accent underline">
+                        Editar
+                      </Link>
+                      <DeleteProductButton id={p.id} name={p.name} />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {products.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-ink-soft">

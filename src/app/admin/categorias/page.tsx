@@ -4,7 +4,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { dbGetCategories } from "@/lib/db";
 
 export default async function AdminCategoriesPage() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  if (!(await isAdminAuthenticated())) redirect("/login");
   const categories = await dbGetCategories();
   return (
     <div>

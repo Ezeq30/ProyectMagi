@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { dbDeleteProduct, dbSetProductColors, dbUpsertProduct } from "@/lib/db";
 import { slugify } from "@/lib/format";
+import { MAX_PRODUCT_IMAGES, parseProductColors } from "@/lib/product-colors";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -12,25 +13,6 @@ async function guard() {
   return null;
 }
 
-function parseColors(raw: unknown): { value: string; stock: number }[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item) => {
-      if (typeof item === "string") {
-        return { value: item.trim(), stock: 0 };
-      }
-      if (item && typeof item === "object") {
-        const row = item as { value?: unknown; stock?: unknown };
-        return {
-          value: String(row.value ?? "").trim(),
-          stock: Math.max(0, Number(row.stock) || 0),
-        };
-      }
-      return { value: "", stock: 0 };
-    })
-    .filter((c) => c.value);
-}
-
 export async function PUT(request: Request, context: Ctx) {
   const denied = await guard();
   if (denied) return denied;
@@ -38,7 +20,7 @@ export async function PUT(request: Request, context: Ctx) {
   const body = await request.json();
 
   try {
-    const colors = parseColors(body.colors);
+    const colors = parseProductColors(body.colors);
     const stockFromColors = colors.reduce((s, c) => s + c.stock, 0);
     await dbUpsertProduct({
       id,
@@ -49,7 +31,7 @@ export async function PUT(request: Request, context: Ctx) {
       compare_at: body.compare_at != null ? Number(body.compare_at) : null,
       stock: colors.length ? stockFromColors : Number(body.stock ?? 0),
       images: Array.isArray(body.images)
-        ? body.images.map(String).slice(0, 5)
+        ? body.images.map(String).slice(0, MAX_PRODUCT_IMAGES)
         : [],
       category_id: body.category_id || null,
       featured: Boolean(body.featured),
@@ -70,6 +52,13 @@ export async function DELETE(_request: Request, context: Ctx) {
   const denied = await guard();
   if (denied) return denied;
   const { id } = await context.params;
-  await dbDeleteProduct(id);
-  return NextResponse.json({ ok: true });
+  try {
+    await dbDeleteProduct(id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Error" },
+      { status: 400 },
+    );
+  }
 }

@@ -31,7 +31,7 @@ export default function LoginForm() {
   return (
     <div className="mx-auto max-w-md rounded-xl border border-line bg-white p-6 shadow-sm sm:p-8">
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Super Admin
+        Login
       </h1>
       <p className="mt-2 text-sm text-ink-soft">
         Accesorios Tortugas Online — mismo usuario en local y en Vercel.

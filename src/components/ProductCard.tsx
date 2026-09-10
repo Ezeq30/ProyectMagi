@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ColorSwatches } from "@/components/ColorSwatches";
 import { useCart } from "@/lib/cart/store";
+import {
+  colorVariantsOf,
+  imageForColorVariant,
+} from "@/lib/color-swatch";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
@@ -10,19 +16,48 @@ type Props = { product: Product };
 
 export function ProductCard({ product }: Props) {
   const addItem = useCart((s) => s.addItem);
-  const image =
-    product.images[0] ??
-    "https://placehold.co/800x1000/1a1a1a/fafaf8/png?text=Tortugas";
-  const colorVariants = (product.variants ?? []).filter(
-    (v) => v.name.toLowerCase() === "color",
+  const colorVariants = useMemo(
+    () => colorVariantsOf(product.variants),
+    [product.variants],
   );
+  const firstAvailable =
+    colorVariants.find((v) => v.stock > 0)?.id ?? colorVariants[0]?.id;
+  const [selectedId, setSelectedId] = useState(firstAvailable);
+
+  const selected = colorVariants.find((v) => v.id === selectedId);
+  const selectedIndex = Math.max(
+    0,
+    colorVariants.findIndex((v) => v.id === selectedId),
+  );
+  const image = imageForColorVariant(
+    product.images,
+    selected,
+    selectedIndex,
+  );
+
   const available =
     colorVariants.length > 0
       ? colorVariants.reduce((s, v) => s + v.stock, 0)
       : product.stock;
   const outOfStock = available <= 0;
-  const needsColor = colorVariants.length > 0;
+  const selectedOut = selected ? selected.stock <= 0 : outOfStock;
   const onSale = Boolean(product.compare_at && product.compare_at > product.price);
+
+  function addToCart() {
+    const stock = selected?.stock ?? product.stock;
+    if (stock <= 0) return;
+    addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image,
+      quantity: 1,
+      maxStock: stock,
+      variantId: selected?.id,
+      variantLabel: selected ? `Color: ${selected.value}` : undefined,
+    });
+  }
 
   return (
     <article className="product-card group flex h-full flex-col overflow-hidden">
@@ -33,7 +68,11 @@ export function ProductCard({ product }: Props) {
         <div className="relative aspect-[4/5]">
           <Image
             src={image}
-            alt={product.name}
+            alt={
+              selected
+                ? `${product.name} — ${selected.value}`
+                : product.name
+            }
             fill
             className="product-card-image object-cover object-center"
             sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
@@ -53,14 +92,9 @@ export function ProductCard({ product }: Props) {
           )}
         </div>
       </Link>
-      <div className="flex flex-1 flex-col px-1 pb-3 pt-3 sm:px-1.5 sm:pt-4">
-        <Link
-          href={`/productos/${product.slug}`}
-          className="block text-[13px] leading-snug tracking-wide sm:text-sm"
-        >
-          {product.name}
-        </Link>
-        <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+
+      <div className="flex flex-1 flex-col px-1.5 pb-3.5 pt-3 sm:px-2 sm:pt-4">
+        <div className="flex flex-wrap items-baseline gap-2">
           <span className="text-sm font-semibold tracking-wide">
             {formatPrice(product.price)}
           </span>
@@ -70,33 +104,38 @@ export function ProductCard({ product }: Props) {
             </span>
           )}
         </div>
-        {!outOfStock &&
-          (needsColor ? (
-            <Link
-              href={`/productos/${product.slug}`}
-              className="mt-auto pt-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-deep"
-            >
-              Elegir color
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="mt-auto pt-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-deep"
-              onClick={() =>
-                addItem({
-                  productId: product.id,
-                  slug: product.slug,
-                  name: product.name,
-                  price: product.price,
-                  image,
-                  quantity: 1,
-                  maxStock: product.stock,
-                })
-              }
-            >
-              Agregar
-            </button>
-          ))}
+
+        <Link
+          href={`/productos/${product.slug}`}
+          className="mt-1.5 block text-[13px] leading-snug tracking-wide text-ink sm:text-sm"
+        >
+          {product.name}
+          {selected ? (
+            <span className="text-ink-soft"> · {selected.value}</span>
+          ) : null}
+        </Link>
+
+        {colorVariants.length > 0 ? (
+          <div className="mt-2.5 min-h-[1.75rem]">
+            <ColorSwatches
+              colors={colorVariants}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              size="sm"
+            />
+          </div>
+        ) : null}
+
+        {!outOfStock && (
+          <button
+            type="button"
+            disabled={selectedOut}
+            className="mt-auto pt-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-deep disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={addToCart}
+          >
+            {selectedOut ? "Sin stock" : "Agregar"}
+          </button>
+        )}
       </div>
     </article>
   );

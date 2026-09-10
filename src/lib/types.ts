@@ -12,6 +12,8 @@ export type ProductVariant = {
   name: string;
   value: string;
   stock: number;
+  /** Foto específica de este color (opcional) */
+  image_url?: string | null;
 };
 
 export type Product = {

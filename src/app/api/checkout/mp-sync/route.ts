@@ -75,6 +75,13 @@ export async function POST(request: Request) {
       statusDetail,
     });
 
+    if (orderStatus === "paid") {
+      const { notifySellerOrder } = await import("@/lib/order-notify");
+      void notifySellerOrder({ ...order, status: "paid" }, "paid").catch((e) =>
+        console.error("notifySellerOrder paid sync:", e),
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       status: orderStatus,

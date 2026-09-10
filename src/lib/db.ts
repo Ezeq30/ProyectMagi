@@ -157,6 +157,7 @@ export async function dbGetProducts(options?: {
           name: String(v.name),
           value: String(v.value),
           stock: Number(v.stock ?? 0),
+          image_url: v.image_url ? String(v.image_url) : null,
         }))
       : [];
     return mapProduct(row, variants);
@@ -188,6 +189,7 @@ export async function dbGetProductById(id: string): Promise<Product | null> {
         name: String(v.name),
         value: String(v.value),
         stock: Number(v.stock ?? 0),
+        image_url: v.image_url ? String(v.image_url) : null,
       }))
     : [];
   return mapProduct(data, variants);
@@ -211,6 +213,10 @@ export async function dbGetCoupon(code: string): Promise<Coupon | null> {
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  return mapCoupon(data);
+}
+
+function mapCoupon(data: Record<string, unknown>): Coupon {
   return {
     id: String(data.id),
     code: String(data.code),
@@ -219,6 +225,127 @@ export async function dbGetCoupon(code: string): Promise<Coupon | null> {
     active: Boolean(data.active),
     min_subtotal: Number(data.min_subtotal ?? 0),
   };
+}
+
+export async function dbGetCoupons(): Promise<Coupon[]> {
+  if (!useSupabaseData()) {
+    const store = await readStore();
+    return store.coupons;
+  }
+  const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { data, error } = await sb.rpc("admin_list_coupons", {
+      p_token: getAdminWriteToken(),
+    });
+    if (error) throw error;
+    return (data ?? []).map((row: Record<string, unknown>) => mapCoupon(row));
+  }
+  const { data, error } = await sb
+    .from("coupons")
+    .select("*")
+    .order("code", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((row) => mapCoupon(row as Record<string, unknown>));
+}
+
+export async function dbUpsertCoupon(
+  input: Omit<Coupon, "id"> & { id?: string },
+): Promise<Coupon> {
+  const code = String(input.code).trim().toUpperCase();
+  if (!code) throw new Error("Falta código");
+  const percent =
+    input.percent_off != null && input.percent_off > 0
+      ? Number(input.percent_off)
+      : null;
+  const amount =
+    percent == null && input.amount_off != null && input.amount_off > 0
+      ? Number(input.amount_off)
+      : null;
+  if (percent == null && amount == null) {
+    throw new Error("Indicá % o monto de descuento");
+  }
+  const payload = {
+    code,
+    percent_off: percent,
+    amount_off: amount,
+    active: Boolean(input.active),
+    min_subtotal: Math.max(0, Number(input.min_subtotal ?? 0)),
+  };
+
+  if (useLocalWrites()) {
+    let saved: Coupon = {
+      id: input.id ?? crypto.randomUUID(),
+      ...payload,
+    };
+    await updateStore((store) => {
+      const idx = store.coupons.findIndex(
+        (c) =>
+          (input.id && c.id === input.id) ||
+          c.code.toLowerCase() === code.toLowerCase(),
+      );
+      if (idx >= 0) {
+        saved = { ...store.coupons[idx], ...payload, id: store.coupons[idx].id };
+        store.coupons[idx] = saved;
+      } else {
+        store.coupons.push(saved);
+      }
+    });
+    return saved;
+  }
+
+  const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { data, error } = await sb.rpc("admin_upsert_coupon", {
+      p_token: getAdminWriteToken(),
+      p_id: input.id ?? null,
+      p_code: payload.code,
+      p_percent_off: payload.percent_off,
+      p_amount_off: payload.amount_off,
+      p_active: payload.active,
+      p_min_subtotal: payload.min_subtotal,
+    });
+    if (error) throw error;
+    return mapCoupon(data as Record<string, unknown>);
+  }
+
+  if (input.id) {
+    const { data, error } = await sb
+      .from("coupons")
+      .update(payload)
+      .eq("id", input.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return mapCoupon(data as Record<string, unknown>);
+  }
+
+  const { data, error } = await sb
+    .from("coupons")
+    .upsert(payload, { onConflict: "code" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapCoupon(data as Record<string, unknown>);
+}
+
+export async function dbDeleteCoupon(id: string): Promise<void> {
+  if (useLocalWrites()) {
+    await updateStore((store) => {
+      store.coupons = store.coupons.filter((c) => c.id !== id);
+    });
+    return;
+  }
+  const sb = createServerDataClient();
+  if (useRpcWrites()) {
+    const { error } = await sb.rpc("admin_delete_coupon", {
+      p_token: getAdminWriteToken(),
+      p_id: id,
+    });
+    if (error) throw error;
+    return;
+  }
+  const { error } = await sb.from("coupons").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function dbUpsertProduct(
@@ -290,12 +417,13 @@ export async function dbUpsertProduct(
 /** Reemplaza los colores (variantes name=Color) de un producto. */
 export async function dbSetProductColors(
   productId: string,
-  colors: { value: string; stock: number }[],
+  colors: { value: string; stock: number; image?: string | null }[],
 ): Promise<void> {
   const cleaned = colors
     .map((c) => ({
       value: String(c.value ?? "").trim(),
       stock: Math.max(0, Number(c.stock) || 0),
+      image: c.image ? String(c.image).trim() : null,
     }))
     .filter((c) => c.value);
 
@@ -315,6 +443,7 @@ export async function dbSetProductColors(
         name: "Color",
         value: c.value,
         stock: c.stock,
+        image_url: c.image,
       }));
       store.products[idx] = {
         ...prev,
@@ -351,6 +480,7 @@ export async function dbSetProductColors(
       name: "Color",
       value: c.value,
       stock: c.stock,
+      image_url: c.image,
     })),
   );
   if (error) throw error;
@@ -621,30 +751,57 @@ export async function dbGetOrderByNumber(orderNumber: string): Promise<Order | n
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  return mapOrderRow(data);
+}
+
+/** Busca por UUID o por order_number. */
+export async function dbGetOrder(idOrNumber: string): Promise<Order | null> {
+  if (!idOrNumber) return null;
+  if (!useSupabaseData()) {
+    const store = await readStore();
+    return (
+      store.orders.find(
+        (o) => o.id === idOrNumber || o.order_number === idOrNumber,
+      ) ?? null
+    );
+  }
+  const sb = createServerDataClient();
+  const { data, error } = await sb
+    .from("orders")
+    .select("*, order_items(*)")
+    .or(`id.eq.${idOrNumber},order_number.eq.${idOrNumber}`)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return mapOrderRow(data);
+}
+
+function mapOrderRow(o: Record<string, unknown>): Order {
+  const items = (o.order_items as Record<string, unknown>[] | undefined) ?? [];
   return {
-    id: String(data.id),
-    order_number: String(data.order_number),
-    status: data.status,
-    customer_name: String(data.customer_name),
-    customer_email: String(data.customer_email),
-    customer_phone: String(data.customer_phone ?? ""),
-    shipping_address: String(data.shipping_address ?? ""),
-    shipping_city: String(data.shipping_city ?? ""),
-    shipping_postal: String(data.shipping_postal ?? ""),
-    shipping_cost: Number(data.shipping_cost ?? 0),
-    subtotal: Number(data.subtotal ?? 0),
-    discount: Number(data.discount ?? 0),
-    total: Number(data.total ?? 0),
-    coupon_code: data.coupon_code ? String(data.coupon_code) : null,
-    mp_preference_id: data.mp_preference_id ? String(data.mp_preference_id) : null,
-    mp_payment_id: data.mp_payment_id ? String(data.mp_payment_id) : null,
-    mp_money_release_date: data.mp_money_release_date
-      ? String(data.mp_money_release_date)
+    id: String(o.id),
+    order_number: String(o.order_number),
+    status: o.status as Order["status"],
+    customer_name: String(o.customer_name),
+    customer_email: String(o.customer_email),
+    customer_phone: String(o.customer_phone ?? ""),
+    shipping_address: String(o.shipping_address ?? ""),
+    shipping_city: String(o.shipping_city ?? ""),
+    shipping_postal: String(o.shipping_postal ?? ""),
+    shipping_cost: Number(o.shipping_cost ?? 0),
+    subtotal: Number(o.subtotal ?? 0),
+    discount: Number(o.discount ?? 0),
+    total: Number(o.total ?? 0),
+    coupon_code: o.coupon_code ? String(o.coupon_code) : null,
+    mp_preference_id: o.mp_preference_id ? String(o.mp_preference_id) : null,
+    mp_payment_id: o.mp_payment_id ? String(o.mp_payment_id) : null,
+    mp_money_release_date: o.mp_money_release_date
+      ? String(o.mp_money_release_date)
       : null,
-    mp_status_detail: data.mp_status_detail ? String(data.mp_status_detail) : null,
-    notes: String(data.notes ?? ""),
-    created_at: String(data.created_at),
-    items: (data.order_items ?? []).map((item: Record<string, unknown>) => ({
+    mp_status_detail: o.mp_status_detail ? String(o.mp_status_detail) : null,
+    notes: String(o.notes ?? ""),
+    created_at: String(o.created_at),
+    items: items.map((item) => ({
       id: String(item.id),
       product_id: item.product_id ? String(item.product_id) : null,
       product_name: String(item.product_name),

@@ -22,6 +22,7 @@ export default async function AdminLayout({
               {[
                 ["/admin/productos", "Productos"],
                 ["/admin/categorias", "Categorías"],
+                ["/admin/cupones", "Cupones"],
                 ["/admin/pedidos", "Pedidos"],
                 ["/admin/apariencia", "Apariencia"],
                 ["/admin/config", "Config"],

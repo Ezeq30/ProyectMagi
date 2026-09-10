@@ -2,31 +2,13 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { dbSetProductColors, dbUpsertProduct } from "@/lib/db";
 import { slugify } from "@/lib/format";
+import { MAX_PRODUCT_IMAGES, parseProductColors } from "@/lib/product-colors";
 
 async function guard() {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return null;
-}
-
-function parseColors(raw: unknown): { value: string; stock: number }[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item) => {
-      if (typeof item === "string") {
-        return { value: item.trim(), stock: 0 };
-      }
-      if (item && typeof item === "object") {
-        const row = item as { value?: unknown; stock?: unknown };
-        return {
-          value: String(row.value ?? "").trim(),
-          stock: Math.max(0, Number(row.stock) || 0),
-        };
-      }
-      return { value: "", stock: 0 };
-    })
-    .filter((c) => c.value);
 }
 
 export async function POST(request: Request) {
@@ -39,7 +21,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const colors = parseColors(body.colors);
+    const colors = parseProductColors(body.colors);
     const stockFromColors = colors.reduce((s, c) => s + c.stock, 0);
     const id = await dbUpsertProduct({
       name: String(body.name),
@@ -49,7 +31,7 @@ export async function POST(request: Request) {
       compare_at: body.compare_at != null ? Number(body.compare_at) : null,
       stock: colors.length ? stockFromColors : Number(body.stock ?? 0),
       images: Array.isArray(body.images)
-        ? body.images.map(String).slice(0, 5)
+        ? body.images.map(String).slice(0, MAX_PRODUCT_IMAGES)
         : [],
       category_id: body.category_id || null,
       featured: Boolean(body.featured),

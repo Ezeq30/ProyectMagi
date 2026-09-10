@@ -4,7 +4,7 @@ import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { dbGetSettings } from "@/lib/db";
 
 export default async function AdminAppearancePage() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  if (!(await isAdminAuthenticated())) redirect("/login");
   const settings = await dbGetSettings();
 
   return (

@@ -5,7 +5,7 @@ import { dbGetSettings } from "@/lib/db";
 import { hasStoredMpToken } from "@/lib/mercadopago";
 
 export default async function AdminConfigPage() {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  if (!(await isAdminAuthenticated())) redirect("/login");
   const [settings, mpReady] = await Promise.all([dbGetSettings(), hasStoredMpToken()]);
   return (
     <div>

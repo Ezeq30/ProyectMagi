@@ -6,7 +6,7 @@ import { dbGetCategories, dbGetProductById } from "@/lib/db";
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditProductPage({ params }: Props) {
-  if (!(await isAdminAuthenticated())) redirect("/admin/login");
+  if (!(await isAdminAuthenticated())) redirect("/login");
   const { id } = await params;
   const [product, categories] = await Promise.all([
     dbGetProductById(id),

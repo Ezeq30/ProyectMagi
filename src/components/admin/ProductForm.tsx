@@ -3,7 +3,9 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { swatchCss } from "@/lib/color-swatch";
 import { slugify } from "@/lib/format";
+import { MAX_PRODUCT_IMAGES } from "@/lib/product-colors";
 import type { Category, Product } from "@/lib/types";
 
 type Props = {
@@ -11,14 +13,18 @@ type Props = {
   categories: Category[];
 };
 
-type ColorRow = { value: string; stock: number };
+type ColorRow = { value: string; stock: number; image: string | null };
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = MAX_PRODUCT_IMAGES;
 
 function initialColors(product?: Product): ColorRow[] {
   return (product?.variants ?? [])
     .filter((v) => v.name.toLowerCase() === "color")
-    .map((v) => ({ value: v.value, stock: v.stock }));
+    .map((v) => ({
+      value: v.value,
+      stock: v.stock,
+      image: v.image_url ?? null,
+    }));
 }
 
 export function ProductForm({ product, categories }: Props) {
@@ -65,7 +71,7 @@ export function ProductForm({ product, categories }: Props) {
       setColorDraft("");
       return;
     }
-    setColors((prev) => [...prev, { value, stock }]);
+    setColors((prev) => [...prev, { value, stock, image: null }]);
     setColorDraft("");
     setColorStockDraft("1");
     setError("");
@@ -80,6 +86,12 @@ export function ProductForm({ product, categories }: Props) {
       prev.map((c) =>
         c.value === value ? { ...c, stock: Math.max(0, stock) } : c,
       ),
+    );
+  }
+
+  function updateColorImage(value: string, image: string | null) {
+    setColors((prev) =>
+      prev.map((c) => (c.value === value ? { ...c, image } : c)),
     );
   }
 
@@ -116,6 +128,9 @@ export function ProductForm({ product, categories }: Props) {
 
   function removeImage(url: string) {
     setImages((prev) => prev.filter((img) => img !== url));
+    setColors((prev) =>
+      prev.map((c) => (c.image === url ? { ...c, image: null } : c)),
+    );
     setError("");
   }
 
@@ -231,78 +246,6 @@ export function ProductForm({ product, categories }: Props) {
         />
       </label>
 
-      <div className="space-y-2">
-        <p className="text-sm text-ink-soft">Colores disponibles</p>
-        <p className="text-xs text-ink-soft">
-          Agregá color + cantidad. El cliente ve cuántos hay y elige al comprar.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <input
-            className="magi-input min-w-[8rem] flex-1"
-            placeholder="Nombre del color"
-            value={colorDraft}
-            onChange={(e) => setColorDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addColor();
-              }
-            }}
-          />
-          <input
-            className="magi-input w-24"
-            type="number"
-            min={0}
-            placeholder="Cant."
-            value={colorStockDraft}
-            onChange={(e) => setColorStockDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addColor();
-              }
-            }}
-          />
-          <button type="button" className="magi-btn magi-btn-outline" onClick={addColor}>
-            Agregar color
-          </button>
-        </div>
-        {colors.length > 0 ? (
-          <ul className="space-y-2 pt-1">
-            {colors.map((color) => (
-              <li
-                key={color.value}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-bg-deep px-3 py-2 text-sm"
-              >
-                <span className="min-w-[5rem] font-medium">{color.value}</span>
-                <label className="flex items-center gap-1 text-ink-soft">
-                  Cant.
-                  <input
-                    className="magi-input w-20 py-1"
-                    type="number"
-                    min={0}
-                    value={color.stock}
-                    onChange={(e) =>
-                      updateColorStock(color.value, Number(e.target.value) || 0)
-                    }
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeColor(color.value)}
-                  className="ml-auto text-ink-soft hover:text-accent"
-                  aria-label={`Quitar ${color.value}`}
-                >
-                  Quitar
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-xs text-ink-soft">Sin colores cargados (opcional).</p>
-        )}
-      </div>
-
       <div className="space-y-3">
         <p className="text-sm text-ink-soft">
           Fotos del producto{" "}
@@ -311,7 +254,7 @@ export function ProductForm({ product, categories }: Props) {
           </span>
         </p>
         <p className="text-xs text-ink-soft">
-          Hasta {MAX_IMAGES} fotos (útil para mostrar distintos colores).
+          Subí primero las fotos. Después, en cada color, elegí cuál foto mostrar.
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -342,7 +285,7 @@ export function ProductForm({ product, categories }: Props) {
         />
 
         {images.length > 0 ? (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {images.map((url, index) => (
               <li
                 key={url}
@@ -380,6 +323,132 @@ export function ProductForm({ product, categories }: Props) {
             <span className="text-base font-medium text-ink">Agregar fotos</span>
             <span>Hasta {MAX_IMAGES} fotos · galería o archivo</span>
           </button>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm text-ink-soft">Colores disponibles</p>
+        <p className="text-xs text-ink-soft">
+          Agregá color + stock y tocá la foto que corresponde a ese color. Así se
+          ven los circulitos en el catálogo.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            className="magi-input min-w-[8rem] flex-1"
+            placeholder="Nombre del color"
+            value={colorDraft}
+            onChange={(e) => setColorDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addColor();
+              }
+            }}
+          />
+          <input
+            className="magi-input w-24"
+            type="number"
+            min={0}
+            placeholder="Cant."
+            value={colorStockDraft}
+            onChange={(e) => setColorStockDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addColor();
+              }
+            }}
+          />
+          <button type="button" className="magi-btn magi-btn-outline" onClick={addColor}>
+            Agregar color
+          </button>
+        </div>
+        {colors.length > 0 ? (
+          <ul className="space-y-3 pt-1">
+            {colors.map((color) => (
+              <li
+                key={color.value}
+                className="space-y-2 rounded-lg border border-line bg-bg-deep px-3 py-3 text-sm"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="h-5 w-5 shrink-0 rounded-full border border-line"
+                    style={{ backgroundColor: swatchCss(color.value) }}
+                    title={color.value}
+                  />
+                  <span className="min-w-[5rem] font-medium">{color.value}</span>
+                  <label className="flex items-center gap-1 text-ink-soft">
+                    Cant.
+                    <input
+                      className="magi-input w-20 py-1"
+                      type="number"
+                      min={0}
+                      value={color.stock}
+                      onChange={(e) =>
+                        updateColorStock(color.value, Number(e.target.value) || 0)
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeColor(color.value)}
+                    className="ml-auto text-ink-soft hover:text-accent"
+                    aria-label={`Quitar ${color.value}`}
+                  >
+                    Quitar
+                  </button>
+                </div>
+                {images.length > 0 ? (
+                  <div>
+                    <p className="mb-1.5 text-xs text-ink-soft">
+                      Foto de este color
+                      {color.image ? "" : " (elegí una)"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {images.map((url, index) => {
+                        const active = color.image === url;
+                        return (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() =>
+                              updateColorImage(
+                                color.value,
+                                active ? null : url,
+                              )
+                            }
+                            className={`relative h-14 w-14 overflow-hidden rounded border-2 ${
+                              active
+                                ? "border-accent ring-1 ring-accent"
+                                : "border-line opacity-80 hover:opacity-100"
+                            }`}
+                            title={`Usar foto ${index + 1}`}
+                          >
+                            <Image
+                              src={url}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="56px"
+                              unoptimized={url.startsWith("data:")}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-amber-800">
+                    Subí fotos arriba para vincularlas a este color.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-ink-soft">
+            Sin colores: el producto se vende sin elegir color (opcional).
+          </p>
         )}
       </div>
 

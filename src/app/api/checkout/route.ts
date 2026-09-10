@@ -18,6 +18,7 @@ import {
   hasTransferPayment,
   type CheckoutPaymentMethod,
 } from "@/lib/payment";
+import { notifySellerOrder } from "@/lib/order-notify";
 import { createServerDataClient, hasServiceRole, useSupabaseData } from "@/lib/supabase/admin";
 import type { CartItem, Order } from "@/lib/types";
 
@@ -126,6 +127,11 @@ export async function POST(request: Request) {
     };
 
     await dbCreateOrder(order);
+
+    // Aviso a Magali (CallMeBot / webhook si están configurados)
+    void notifySellerOrder(order, "created").catch((e) =>
+      console.error("notifySellerOrder created:", e),
+    );
 
     let initPoint: string | null = null;
     if (!payCash && mpReady) {
