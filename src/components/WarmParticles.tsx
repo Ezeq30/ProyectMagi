@@ -13,17 +13,17 @@ type Particle = {
   opacity: number;
 };
 
-/** Partículas cálidas (gold/sage) muy sutiles — solo home, respetan reduced-motion. */
-export function WarmParticles({ count = 14 }: { count?: number }) {
+/** Partículas cálidas visibles en el hero (sin saturar). */
+export function WarmParticles({ count = 22 }: { count?: number }) {
   const reduce = useReducedMotion();
   const particles = useMemo<Particle[]>(() => {
     return Array.from({ length: count }, (_, i) => ({
       id: i,
-      left: `${6 + ((i * 17) % 88)}%`,
-      size: 3 + (i % 4),
-      duration: 14 + (i % 7) * 2.2,
-      delay: (i % 8) * 0.9,
-      opacity: 0.18 + (i % 5) * 0.04,
+      left: `${4 + ((i * 13) % 92)}%`,
+      size: 4 + (i % 5),
+      duration: 11 + (i % 6) * 1.8,
+      delay: (i % 10) * 0.55,
+      opacity: 0.35 + (i % 4) * 0.08,
     }));
   }, [count]);
 
@@ -37,7 +37,7 @@ export function WarmParticles({ count = 14 }: { count?: number }) {
       {particles.map((p) => (
         <motion.span
           key={p.id}
-          className="absolute bottom-[-8%] rounded-full"
+          className="absolute bottom-[-10%] rounded-full"
           style={{
             left: p.left,
             width: p.size,
@@ -47,14 +47,14 @@ export function WarmParticles({ count = 14 }: { count?: number }) {
                 ? "var(--gold)"
                 : p.id % 3 === 1
                   ? "var(--accent)"
-                  : "color-mix(in srgb, var(--gold) 55%, white)",
+                  : "#e8d5b5",
             opacity: p.opacity,
-            boxShadow: `0 0 ${p.size * 2}px color-mix(in srgb, var(--gold) 35%, transparent)`,
+            boxShadow: `0 0 ${p.size * 3}px color-mix(in srgb, var(--gold) 55%, transparent)`,
           }}
           animate={{
-            y: ["0vh", "-110vh"],
-            x: [0, p.id % 2 === 0 ? 12 : -14, 0],
-            opacity: [0, p.opacity, p.opacity * 0.6, 0],
+            y: ["0vh", "-115vh"],
+            x: [0, p.id % 2 === 0 ? 18 : -20, 6],
+            opacity: [0, p.opacity, p.opacity * 0.7, 0],
           }}
           transition={{
             duration: p.duration,

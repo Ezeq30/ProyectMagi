@@ -71,12 +71,12 @@ export function HeroSlider({ images, className = "" }: Props) {
               className="absolute inset-0"
               animate={
                 active && !reduce
-                  ? { scale: [1, 1.06] }
+                  ? { scale: [1, 1.08] }
                   : { scale: 1 }
               }
               transition={
                 active && !reduce
-                  ? { duration: 20, ease: "linear", repeat: Infinity, repeatType: "reverse" }
+                  ? { duration: 16, ease: "linear", repeat: Infinity, repeatType: "reverse" }
                   : { duration: 0.4 }
               }
             >

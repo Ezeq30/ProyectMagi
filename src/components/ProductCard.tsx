@@ -121,7 +121,7 @@ export function ProductCard({ product }: Props) {
               colors={colorVariants}
               selectedId={selectedId}
               onSelect={setSelectedId}
-              size="sm"
+              size="md"
             />
           </div>
         ) : null}

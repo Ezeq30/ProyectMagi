@@ -11,7 +11,6 @@ type Props = {
   showLabels?: boolean;
 };
 
-/** Corazón SVG relleno con el color del variante. */
 function HeartIcon({
   fill,
   stroke,
@@ -31,7 +30,7 @@ function HeartIcon({
       focusable="false"
     >
       <path
-        d="M12 21s-6.7-4.35-9.33-8.04C.74 10.3 1.1 6.9 3.6 5.2c2.1-1.4 4.7-.9 6.1 1.1L12 9l2.3-2.7c1.4-2 4-2.5 6.1-1.1 2.5 1.7 2.86 5.1.93 7.76C18.7 16.65 12 21 12 21z"
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
         fill={fill}
         stroke={stroke}
         strokeWidth={strokeWidth}
@@ -50,11 +49,12 @@ export function ColorSwatches({
 }: Props) {
   if (colors.length === 0) return null;
 
-  const dim = size === "md" ? "h-5 w-5" : "h-4 w-4";
+  // Más visibles: cards ~22px, ficha ~26px
+  const dim = size === "md" ? "h-7 w-7" : "h-[1.35rem] w-[1.35rem] sm:h-6 sm:w-6";
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5"
+      className="flex flex-wrap items-center gap-2"
       role="listbox"
       aria-label="Colores"
     >
@@ -66,9 +66,9 @@ export function ColorSwatches({
         const stroke = active
           ? "var(--ink)"
           : light
-            ? "rgba(0,0,0,0.28)"
-            : "rgba(0,0,0,0.15)";
-        const strokeWidth = active ? 1.6 : light ? 1.2 : 0.9;
+            ? "rgba(0,0,0,0.35)"
+            : "rgba(0,0,0,0.2)";
+        const strokeWidth = active ? 1.4 : 1;
 
         return (
           <button
@@ -86,14 +86,16 @@ export function ColorSwatches({
             }}
             className={`inline-flex items-center gap-1.5 transition ${
               showLabels
-                ? `rounded-full border px-1.5 py-1 text-[11px] sm:text-xs ${
+                ? `rounded-full border px-2 py-1 text-xs ${
                     soldOut
                       ? "cursor-not-allowed border-line/50 opacity-45"
                       : active
-                        ? "border-ink bg-bg-deep"
+                        ? "border-ink bg-bg-deep shadow-sm"
                         : "border-line hover:border-ink/50"
                   }`
-                : "shrink-0 hover:scale-110"
+                : `shrink-0 rounded-full p-0.5 ${
+                    active ? "bg-bg-deep ring-1 ring-ink/40" : "hover:scale-110"
+                  }`
             }`}
           >
             <span className={`relative inline-flex ${dim} ${soldOut ? "opacity-45" : ""}`}>
@@ -101,11 +103,11 @@ export function ColorSwatches({
                 fill={bg}
                 stroke={stroke}
                 strokeWidth={strokeWidth}
-                className="h-full w-full"
+                className="h-full w-full drop-shadow-sm"
               />
               {soldOut && (
                 <span
-                  className="pointer-events-none absolute inset-[15%] rotate-45 border-t border-ink/70"
+                  className="pointer-events-none absolute inset-[18%] rotate-45 border-t-2 border-ink/70"
                   aria-hidden
                 />
               )}

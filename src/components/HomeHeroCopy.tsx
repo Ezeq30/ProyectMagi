@@ -27,7 +27,7 @@ export function HomeHeroCopy({ headline, sub }: Props) {
 
   return (
     <div className="relative order-2 flex flex-col justify-center overflow-hidden bg-bg px-4 py-10 sm:px-10 sm:py-16 lg:order-1 lg:px-14 xl:px-20">
-      <WarmParticles count={12} />
+      <WarmParticles count={22} />
       <div className="relative z-[2]">
         <motion.p
           className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold sm:text-[11px] sm:tracking-[0.28em]"
@@ -42,11 +42,11 @@ export function HomeHeroCopy({ headline, sub }: Props) {
           {headline}
         </motion.h1>
         <motion.div
-          className="mt-4 h-px origin-left bg-gold"
+          className="mt-4 h-[2px] origin-left rounded-full bg-gold"
           initial={reduce ? false : { scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
-          style={{ width: "4rem" }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+          style={{ width: "5.5rem" }}
         />
         <motion.p
           className="mt-4 max-w-md text-[0.95rem] leading-relaxed text-ink-soft sm:mt-5 sm:text-lg"
