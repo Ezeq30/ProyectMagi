@@ -7,7 +7,7 @@ export default function ContactPage() {
     <div className="mx-auto max-w-3xl px-4 py-16">
       <h1 className="font-[family-name:var(--font-display)] text-5xl">Contacto</h1>
       <p className="mt-6 text-ink-soft leading-relaxed">
-        ¿Consultas por un producto, envíos o venta mayorista? Magali te responde por WhatsApp.
+        ¿Consultas por un producto, envíos o venta mayorista? Te respondemos por WhatsApp.
       </p>
       <a
         href={whatsappUrl("Hola! Quiero consultar por Accesorios Tortugas Online")}

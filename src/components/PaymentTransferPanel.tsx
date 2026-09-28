@@ -117,7 +117,7 @@ export function PaymentTransferPanel({
   const message = useMemo(
     () =>
       [
-        `Hola Magali! Ya pagué mi compra en ${STORE_DISPLAY_NAME}.`,
+        `Hola! Ya pagué mi compra en ${STORE_DISPLAY_NAME}.`,
         `Pedido: ${orderNumber}`,
         `Total: ${formatPrice(total)}`,
         payTransfer
@@ -197,7 +197,7 @@ export function PaymentTransferPanel({
       window.open(whatsappUrl(message, whatsapp), "_blank", "noopener,noreferrer");
       setShareNote(
         file
-          ? "Se abrió el chat de Magali: adjuntá la foto del comprobante ahí."
+          ? "Se abrió el chat de WhatsApp con la vendedora: adjuntá la foto del comprobante ahí."
           : "Se abrió el chat: pegá o adjuntá el comprobante.",
       );
     } catch {
@@ -275,7 +275,7 @@ export function PaymentTransferPanel({
             </div>
           ) : (
             <p className="mt-4 text-sm text-red-700">
-              No encontramos el cupón. Escribile a Magali por WhatsApp.
+              No encontramos el cupón. Escribinos por WhatsApp.
             </p>
           )}
 
@@ -284,7 +284,7 @@ export function PaymentTransferPanel({
             <li>2. Pagá el monto exacto en efectivo. El cupón vence en {TICKET_EXPIRATION_DAYS} días.</li>
             <li>
               3. Cuando se acredite (puede tardar hasta 48 h hábiles), el pedido se confirma solo y
-              Magali te contacta para el envío.
+              la vendedora te contacta por WhatsApp para el envío.
             </li>
           </ol>
         </div>
@@ -352,7 +352,7 @@ export function PaymentTransferPanel({
             </div>
           ) : (
             <p className="mt-4 text-sm text-red-700">
-              Los datos de transferencia no están cargados. Escribile a Magali por WhatsApp.
+              Los datos de transferencia no están cargados. Escribinos por WhatsApp.
             </p>
           )}
 
@@ -406,7 +406,7 @@ export function PaymentTransferPanel({
             </div>
           ) : (
             <p className="mt-4 text-sm text-red-700">
-              El pago online aún no está configurado. Escribile a Magali por WhatsApp.
+              El pago online aún no está configurado. Escribinos por WhatsApp.
             </p>
           )}
 
@@ -426,7 +426,7 @@ export function PaymentTransferPanel({
             Enviar comprobante
           </h2>
           <p className="text-sm text-ink-soft">
-            Mandale el comprobante a Magali por WhatsApp para confirmar el pedido{" "}
+            Mandale el comprobante a la vendedora por WhatsApp para confirmar el pedido{" "}
             <strong>{orderNumber}</strong>.
           </p>
           <label className="block text-sm">

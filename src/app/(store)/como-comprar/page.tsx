@@ -19,7 +19,7 @@ export default async function HowToBuyPage() {
         </li>
         <li>
           <strong className="text-ink">2. Completá el checkout</strong> — Ingresá tus datos y, si
-          querés, coordiná el envío con Magali.
+          querés, coordiná el envío con la vendedora por WhatsApp.
         </li>
         <li>
           <strong className="text-ink">3. Mercado Pago</strong> — Tarjetas vinculadas (Visa,

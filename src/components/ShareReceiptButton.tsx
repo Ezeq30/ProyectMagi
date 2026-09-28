@@ -18,7 +18,7 @@ export function ShareReceiptButton({ orderNumber, total, whatsapp }: Props) {
   const message = useMemo(
     () =>
       [
-        "Hola Magali! Ya pagué mi compra en Accesorios Tortugas Online.",
+        "Hola! Ya pagué mi compra en Accesorios Tortugas Online.",
         orderNumber ? `Pedido: ${orderNumber}` : null,
         total > 0 ? `Total: ${formatPrice(total)}` : null,
         "Te envío el comprobante.",
@@ -38,14 +38,14 @@ export function ShareReceiptButton({ orderNumber, total, whatsapp }: Props) {
           title: `Comprobante ${orderNumber}`,
           text: message,
         });
-        setNote("Elegí WhatsApp para enviarle el comprobante a Magali.");
+        setNote("Elegí WhatsApp para enviarle el comprobante a la vendedora.");
         return;
       }
       window.open(whatsappUrl(message, whatsapp), "_blank", "noopener,noreferrer");
       setNote(
         file
           ? "Se abrió el chat: adjuntá ahí la foto del comprobante."
-          : "Se abrió el chat de Magali para enviar el comprobante.",
+          : "Se abrió el chat de WhatsApp con la vendedora para enviar el comprobante.",
       );
     } catch {
       window.open(whatsappUrl(message, whatsapp), "_blank", "noopener,noreferrer");

@@ -241,7 +241,7 @@ export default function CheckoutPage() {
 
           {arrangeWithSeller && (
             <p className="rounded-lg border border-line bg-bg-deep/50 px-3 py-2 text-sm text-ink-soft">
-              Después de confirmar, coordiná con Magali por WhatsApp el retiro o el envío.
+              Después de confirmar, coordiná con la vendedora por WhatsApp el retiro o el envío.
             </p>
           )}
 
