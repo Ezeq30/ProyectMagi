@@ -9,6 +9,7 @@ import {
 } from "@/lib/catalog";
 import { dbCreateOrder } from "@/lib/db";
 import {
+  createCashTicket,
   createPreferenceForOrder,
   isMercadoPagoReady,
 } from "@/lib/mercadopago";
@@ -16,6 +17,10 @@ import {
   calcTransferDiscount,
   hasTransferPayment,
   normalizePaymentMethod,
+  normalizeTicketMethod,
+  parseDni,
+  TICKET_METHOD_LABELS,
+  TICKET_URL_NOTE_PREFIX,
   TRANSFER_DISCOUNT_PERCENT,
 } from "@/lib/payment";
 import { notifySellerOrder } from "@/lib/order-notify";
@@ -38,6 +43,15 @@ export async function POST(request: Request) {
     const paymentMethod = normalizePaymentMethod(body.paymentMethod);
     const arrangeWithSeller = shippingMethod === "seller_arrange";
     const payTransfer = paymentMethod === "transfer";
+    const payTicket = paymentMethod === "ticket";
+    const ticketMethod = normalizeTicketMethod(body.ticketMethod);
+    const payerDni = payTicket ? parseDni(body.customer_dni) : null;
+    if (payTicket && !payerDni) {
+      return NextResponse.json(
+        { error: "Ingresá un DNI válido (7 u 8 números) para generar el cupón" },
+        { status: 400 },
+      );
+    }
 
     const required = [
       "customer_name",
@@ -80,16 +94,50 @@ export async function POST(request: Request) {
     const orderNumber = `AT-${Date.now().toString().slice(-8)}`;
 
     const mpReady = await isMercadoPagoReady();
-    const payPage = payTransfer || mpReady || transfer;
+    if (payTicket && !mpReady) {
+      return NextResponse.json(
+        { error: "El pago en efectivo no está disponible por el momento" },
+        { status: 400 },
+      );
+    }
+    const payPage = payTransfer || payTicket || mpReady || transfer;
+
+    let ticket: Awaited<ReturnType<typeof createCashTicket>> | null = null;
+    if (payTicket && payerDni) {
+      try {
+        ticket = await createCashTicket({
+          orderId,
+          orderNumber,
+          amount: total,
+          method: ticketMethod,
+          payerEmail: String(body.customer_email),
+          payerName: String(body.customer_name),
+          payerDni,
+        });
+      } catch (e) {
+        console.error("MP cash ticket:", e);
+        return NextResponse.json(
+          { error: "No se pudo generar el cupón de pago. Probá de nuevo o elegí otro medio." },
+          { status: 502 },
+        );
+      }
+    }
 
     const userNotes = String(body.notes ?? "").trim();
     const paymentNote = payTransfer
       ? `Pago: transferencia (${TRANSFER_DISCOUNT_PERCENT}% de descuento).`
-      : "Pago: Mercado Pago.";
+      : payTicket
+        ? `Pago: cupón ${TICKET_METHOD_LABELS[ticketMethod]} (efectivo, vence ${new Date(
+            ticket!.expiresAt,
+          ).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })}).`
+        : "Pago: Mercado Pago.";
+    const ticketNote = ticket ? `${TICKET_URL_NOTE_PREFIX}${ticket.ticketUrl}` : "";
     const shippingNote = arrangeWithSeller
       ? "Envío: a coordinar con el vendedor (sin cargo de envío)."
       : "";
-    const notes = [paymentNote, shippingNote, userNotes].filter(Boolean).join("\n");
+    const notes = [paymentNote, ticketNote, shippingNote, userNotes]
+      .filter(Boolean)
+      .join("\n");
 
     const order: Order = {
       id: orderId,
@@ -111,7 +159,7 @@ export async function POST(request: Request) {
       total,
       coupon_code: coupon?.code ?? null,
       mp_preference_id: null,
-      mp_payment_id: null,
+      mp_payment_id: ticket?.paymentId ?? null,
       mp_money_release_date: null,
       mp_status_detail: null,
       notes,
@@ -136,7 +184,7 @@ export async function POST(request: Request) {
     );
 
     let initPoint: string | null = null;
-    if (!payTransfer && mpReady) {
+    if (!payTransfer && !payTicket && mpReady) {
       try {
         const pref = await createPreferenceForOrder(order);
         initPoint = pref.init_point;
@@ -161,6 +209,7 @@ export async function POST(request: Request) {
       orderId,
       orderNumber,
       init_point: initPoint,
+      ticket_url: ticket?.ticketUrl ?? null,
       transfer,
       payPage,
       demo: !payPage,

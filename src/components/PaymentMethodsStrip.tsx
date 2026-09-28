@@ -89,6 +89,17 @@ function MercadoPagoIcon() {
   );
 }
 
+function CashIcon() {
+  return (
+    <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-ink sm:text-xs">
+      <svg viewBox="0 0 24 24" className="h-4 w-4 text-accent" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M4 5v14M7 5v14M10 5v14M14 5v14M16 5v14M20 5v14" strokeLinecap="round" />
+      </svg>
+      Efectivo
+    </span>
+  );
+}
+
 function TransferIcon() {
   return (
     <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-ink sm:text-xs">
@@ -131,7 +142,8 @@ export function PaymentMethodsStrip({
         <>
           <p className="text-sm font-medium text-ink">Medios de pago</p>
           <p className="mt-1 text-xs text-ink-soft">
-            Mercado Pago (tarjetas vinculadas) · Transferencia con {TRANSFER_DISCOUNT_PERCENT}% OFF
+            Mercado Pago (tarjetas vinculadas) · Transferencia con {TRANSFER_DISCOUNT_PERCENT}% OFF ·
+            Efectivo en Pago Fácil o Rapipago
           </p>
         </>
       )}
@@ -160,6 +172,9 @@ export function PaymentMethodsStrip({
           title={`Transferencia · ${TRANSFER_DISCOUNT_PERCENT}% OFF`}
         >
           <TransferIcon />
+        </Badge>
+        <Badge label="Efectivo: Pago Fácil o Rapipago" title="Efectivo · Pago Fácil / Rapipago">
+          <CashIcon />
         </Badge>
       </div>
       {(inverted || hideHeading) && (

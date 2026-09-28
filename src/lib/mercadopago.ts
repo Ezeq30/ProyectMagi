@@ -1,6 +1,11 @@
-import { MercadoPagoConfig, Preference } from "mercadopago";
+import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import { getSiteUrl } from "./site-url";
-import { paymentPayeeLabel, STORE_DISPLAY_NAME } from "./payment";
+import {
+  paymentPayeeLabel,
+  STORE_DISPLAY_NAME,
+  TICKET_EXPIRATION_DAYS,
+  type TicketMethod,
+} from "./payment";
 import {
   canUseAdminRpc,
   createServerDataClient,
@@ -159,6 +164,68 @@ export async function createCheckoutPreference(params: {
     description: copy.description,
     payerEmail: params.payerEmail,
   });
+}
+
+function splitName(fullName: string): { first: string; last: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { first: parts[0] ?? "Cliente", last: parts[0] ?? "Cliente" };
+  return { first: parts.slice(0, -1).join(" "), last: parts[parts.length - 1] };
+}
+
+/** Emite un cupón de Pago Fácil / Rapipago para pagar en efectivo en sucursal. */
+export async function createCashTicket(params: {
+  orderId: string;
+  orderNumber: string;
+  amount: number;
+  method: TicketMethod;
+  payerEmail: string;
+  payerName: string;
+  payerDni: string;
+}): Promise<{ paymentId: string; ticketUrl: string; expiresAt: string }> {
+  const token = await resolveMpAccessToken();
+  if (!token) {
+    throw new Error("El pago en efectivo no está disponible por el momento.");
+  }
+
+  const amount = Number(Math.max(0, params.amount).toFixed(2));
+  if (amount < 50) {
+    throw new Error("El monto mínimo para pagar en efectivo es $50.");
+  }
+
+  const expiresAt = new Date(
+    Date.now() + TICKET_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { first, last } = splitName(params.payerName);
+  const siteUrl = getSiteUrl();
+  const settings = await dbGetSettings();
+
+  const client = new MercadoPagoConfig({ accessToken: token });
+  const result = await new Payment(client).create({
+    body: {
+      transaction_amount: amount,
+      description: buildPayeeCopy(settings.payment_holder, params.orderNumber).title,
+      payment_method_id: params.method,
+      external_reference: params.orderId,
+      notification_url: `${siteUrl}/api/webhooks/mercadopago`,
+      date_of_expiration: expiresAt,
+      statement_descriptor: "TORTUGAS",
+      metadata: { order_number: params.orderNumber },
+      payer: {
+        email: params.payerEmail,
+        first_name: first,
+        last_name: last,
+        identification: { type: "DNI", number: params.payerDni },
+      },
+    },
+    requestOptions: { idempotencyKey: `ticket-${params.orderId}` },
+  });
+
+  const ticketUrl = result.transaction_details?.external_resource_url;
+  if (!result.id || !ticketUrl) {
+    throw new Error("No se pudo generar el cupón de pago.");
+  }
+
+  return { paymentId: String(result.id), ticketUrl, expiresAt };
 }
 
 export async function createPreferenceForOrder(

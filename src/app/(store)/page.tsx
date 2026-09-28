@@ -119,7 +119,7 @@ export default async function HomePage() {
             },
             {
               title: "Pago seguro",
-              body: "Mercado Pago o transferencia con 5% de descuento.",
+              body: "Mercado Pago, transferencia con 5% OFF o efectivo en Pago Fácil / Rapipago.",
             },
             {
               title: "Atención personalizada",

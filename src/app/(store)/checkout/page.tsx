@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/format";
-import { TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
+import { TICKET_METHOD_LABELS, TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
 
 type Quote = {
   shippingCost: number;
@@ -20,7 +20,15 @@ type ShippingMethod = "delivery" | "seller_arrange";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clear, paymentMethod, setPaymentMethod } = useCart();
+  const {
+    items,
+    subtotal,
+    clear,
+    paymentMethod,
+    setPaymentMethod,
+    ticketMethod,
+    setTicketMethod,
+  } = useCart();
   const cartSubtotal = subtotal();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [coupon, setCoupon] = useState("");
@@ -36,11 +44,13 @@ export default function CheckoutPage() {
     shipping_address: "",
     shipping_city: "",
     shipping_postal: "",
+    customer_dni: "",
     notes: "",
   });
 
   const arrangeWithSeller = shippingMethod === "seller_arrange";
   const payTransfer = paymentMethod === "transfer";
+  const payTicket = paymentMethod === "ticket";
 
   useEffect(() => {
     async function loadQuote() {
@@ -82,6 +92,8 @@ export default function CheckoutPage() {
           coupon: appliedCoupon || undefined,
           shippingMethod,
           paymentMethod,
+          ticketMethod: payTicket ? ticketMethod : undefined,
+          customer_dni: payTicket ? form.customer_dni : undefined,
           items,
         }),
       });
@@ -145,7 +157,28 @@ export default function CheckoutPage() {
           ))}
 
           <div className="rounded-xl border border-line bg-card p-4">
-            <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+            <PaymentMethodPicker
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              ticketMethod={ticketMethod}
+              onTicketMethodChange={setTicketMethod}
+            />
+            {payTicket && (
+              <label className="mt-4 block text-sm">
+                <span className="mb-1 block text-ink-soft">
+                  DNI (lo pide {TICKET_METHOD_LABELS[ticketMethod]} para el cupón)
+                </span>
+                <input
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9.\s]{7,11}"
+                  className="magi-input"
+                  placeholder="Ej: 30123456"
+                  value={form.customer_dni}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_dni: e.target.value }))}
+                />
+              </label>
+            )}
           </div>
 
           <fieldset className="space-y-3 rounded-xl border border-line bg-card p-4">
@@ -229,12 +262,16 @@ export default function CheckoutPage() {
               ? "Procesando..."
               : payTransfer
                 ? "Confirmar y ver datos de transferencia"
-                : "Confirmar y pagar"}
+                : payTicket
+                  ? `Confirmar y generar cupón de ${TICKET_METHOD_LABELS[ticketMethod]}`
+                  : "Confirmar y pagar"}
           </button>
           <p className="text-xs text-ink-soft">
             {payTransfer
               ? `Transferencia con ${TRANSFER_DISCOUNT_PERCENT}% de descuento. Al confirmar vas a ver alias y CBU para copiar.`
-              : "Vas a pagar con Mercado Pago y después podés enviar el comprobante por WhatsApp."}
+              : payTicket
+                ? `Al confirmar generamos el cupón para pagar en ${TICKET_METHOD_LABELS[ticketMethod]}. Cuando lo pagues, el pedido se confirma solo.`
+                : "Vas a pagar con Mercado Pago y después podés enviar el comprobante por WhatsApp."}
           </p>
         </form>
       </div>

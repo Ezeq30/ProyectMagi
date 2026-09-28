@@ -1,16 +1,23 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { normalizePaymentMethod, type CheckoutPaymentMethod } from "../payment";
+import {
+  normalizePaymentMethod,
+  normalizeTicketMethod,
+  type CheckoutPaymentMethod,
+  type TicketMethod,
+} from "../payment";
 import type { CartItem } from "../types";
 
 type CartState = {
   items: CartItem[];
   paymentMethod: CheckoutPaymentMethod;
+  ticketMethod: TicketMethod;
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
   setPaymentMethod: (method: CheckoutPaymentMethod) => void;
+  setTicketMethod: (method: TicketMethod) => void;
   addItem: (item: CartItem, paymentMethod?: CheckoutPaymentMethod) => void;
   removeItem: (productId: string, variantId?: string) => void;
   setQuantity: (productId: string, quantity: number, variantId?: string) => void;
@@ -28,11 +35,13 @@ export const useCart = create<CartState>()(
     (set, get) => ({
       items: [],
       paymentMethod: "mercadopago",
+      ticketMethod: "pagofacil",
       isOpen: false,
       openCart: () => set({ isOpen: true }),
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set((s) => ({ isOpen: !s.isOpen })),
       setPaymentMethod: (method) => set({ paymentMethod: method }),
+      setTicketMethod: (method) => set({ ticketMethod: method }),
       addItem: (item, paymentMethod) => {
         const items = [...get().items];
         const idx = items.findIndex((i) =>
@@ -85,6 +94,7 @@ export const useCart = create<CartState>()(
           ...current,
           ...saved,
           paymentMethod: normalizePaymentMethod(saved.paymentMethod),
+          ticketMethod: normalizeTicketMethod(saved.ticketMethod),
         };
       },
     },

@@ -5,9 +5,13 @@ import Link from "next/link";
 import { formatPrice } from "@/lib/format";
 import {
   STORE_DISPLAY_NAME,
+  TICKET_EXPIRATION_DAYS,
+  TICKET_METHOD_LABELS,
   TRANSFER_DISCOUNT_PERCENT,
   type CheckoutPaymentMethod,
+  type TicketMethod,
 } from "@/lib/payment";
+import type { OrderStatus } from "@/lib/types";
 import { whatsappUrl } from "@/lib/whatsapp";
 
 type Props = {
@@ -18,6 +22,9 @@ type Props = {
   discount: number;
   shippingLabel?: string;
   paymentMethod?: CheckoutPaymentMethod;
+  ticketMethod?: TicketMethod;
+  ticketUrl?: string;
+  orderStatus?: OrderStatus;
   alias: string;
   cbu: string;
   holder: string;
@@ -73,6 +80,9 @@ export function PaymentTransferPanel({
   discount,
   shippingLabel,
   paymentMethod = "mercadopago",
+  ticketMethod = "pagofacil",
+  ticketUrl,
+  orderStatus,
   alias,
   cbu,
   holder,
@@ -90,7 +100,19 @@ export function PaymentTransferPanel({
   const autoStarted = useRef(false);
   const hasTransfer = Boolean(alias || cbu);
   const payTransfer = paymentMethod === "transfer";
+  const payTicket = paymentMethod === "ticket";
+  const ticketLabel = TICKET_METHOD_LABELS[ticketMethod];
   const amountText = String(Math.round(total));
+
+  function shareTicket() {
+    if (!ticketUrl) return;
+    const text = [
+      `Cupón ${ticketLabel} · ${STORE_DISPLAY_NAME}`,
+      `Pedido ${orderNumber} · ${formatPrice(total)}`,
+      ticketUrl,
+    ].join("\n");
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  }
 
   const message = useMemo(
     () =>
@@ -153,11 +175,11 @@ export function PaymentTransferPanel({
   }
 
   useEffect(() => {
-    if (!autoStartMp || payTransfer || !mpReady || autoStarted.current) return;
+    if (!autoStartMp || payTransfer || payTicket || !mpReady || autoStarted.current) return;
     autoStarted.current = true;
     void payWithMercadoPago();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount
-  }, [autoStartMp, mpReady, payTransfer]);
+  }, [autoStartMp, mpReady, payTransfer, payTicket]);
 
   async function shareReceipt() {
     setSharing(true);
@@ -202,16 +224,71 @@ export function PaymentTransferPanel({
   return (
     <div className="mx-auto max-w-lg px-4 py-10 sm:py-12">
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
-        {payTransfer
-          ? `Transferencia · ${TRANSFER_DISCOUNT_PERCENT}% OFF`
-          : "Mercado Pago"}
+        {payTicket
+          ? `Efectivo · ${ticketLabel}`
+          : payTransfer
+            ? `Transferencia · ${TRANSFER_DISCOUNT_PERCENT}% OFF`
+            : "Mercado Pago"}
       </p>
       <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl sm:text-4xl">
-        {payTransfer ? "Transferí tu pago" : "Pagá tu pedido"}
+        {payTicket ? "Tu cupón de pago" : payTransfer ? "Transferí tu pago" : "Pagá tu pedido"}
       </h1>
       <p className="mt-2 text-ink-soft">
         Pedido <strong className="text-ink">{orderNumber}</strong>
       </p>
+
+      {payTicket && (
+        <div className="mt-6 border border-line bg-card p-5 sm:p-6">
+          {orderStatus === "paid" ? (
+            <p className="text-center text-sm font-semibold text-success">
+              ¡Pago acreditado! Tu pedido ya está confirmado.
+            </p>
+          ) : null}
+
+          <div className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+              Monto a pagar en {ticketLabel}
+            </p>
+            <p className="mt-2 font-[family-name:var(--font-display)] text-4xl tracking-tight text-ink sm:text-5xl">
+              {formatPrice(total)}
+            </p>
+            {breakdown}
+          </div>
+
+          {ticketUrl ? (
+            <div className="mt-6 space-y-3">
+              <a
+                href={ticketUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="magi-btn w-full justify-center text-center"
+              >
+                Ver / descargar cupón
+              </a>
+              <button
+                type="button"
+                className="magi-btn magi-btn-outline w-full justify-center"
+                onClick={shareTicket}
+              >
+                Enviarme el cupón por WhatsApp
+              </button>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-red-700">
+              No encontramos el cupón. Escribile a Magali por WhatsApp.
+            </p>
+          )}
+
+          <ol className="mt-6 space-y-2 border-t border-line pt-4 text-sm text-ink-soft">
+            <li>1. Abrí el cupón y mostralo (impreso o en el celular) en cualquier {ticketLabel}.</li>
+            <li>2. Pagá el monto exacto en efectivo. El cupón vence en {TICKET_EXPIRATION_DAYS} días.</li>
+            <li>
+              3. Cuando se acredite (puede tardar hasta 48 h hábiles), el pedido se confirma solo y
+              Magali te contacta para el envío.
+            </li>
+          </ol>
+        </div>
+      )}
 
       {!paid && payTransfer && (
         <div className="mt-6 border border-line bg-card p-5 sm:p-6">
@@ -289,7 +366,7 @@ export function PaymentTransferPanel({
         </div>
       )}
 
-      {!paid && !payTransfer && (
+      {!paid && !payTransfer && !payTicket && (
         <div className="mt-6 border border-line bg-card p-5 sm:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
             Pagás a

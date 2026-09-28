@@ -14,7 +14,8 @@ export default async function HowToBuyPage() {
       <ol className="mt-8 space-y-5 text-ink-soft leading-relaxed">
         <li>
           <strong className="text-ink">1. Elegí tus productos</strong> — Navegá el catálogo y
-          agregalos al carrito. Al elegir, podés pagar con Mercado Pago o por transferencia.
+          agregalos al carrito. Podés pagar con Mercado Pago, por transferencia o en efectivo
+          en Pago Fácil / Rapipago.
         </li>
         <li>
           <strong className="text-ink">2. Completá el checkout</strong> — Ingresá tus datos y, si
@@ -31,11 +32,16 @@ export default async function HowToBuyPage() {
           comprobante por WhatsApp.
         </li>
         <li>
-          <strong className="text-ink">5. Envío</strong> — El costo de envío se calcula en el
+          <strong className="text-ink">5. Efectivo · Pago Fácil o Rapipago</strong> — Elegís la
+          sucursal, ingresás tu DNI y te generamos un cupón (vence en 3 días). Cuando lo pagás, el
+          pedido se confirma solo. Precio de lista.
+        </li>
+        <li>
+          <strong className="text-ink">6. Envío</strong> — El costo de envío se calcula en el
           checkout (desde {formatPrice(settings.flat_shipping_cost)}), o lo acordás sin cargo.
         </li>
         <li>
-          <strong className="text-ink">6. Dudas</strong> — Escribinos al{" "}
+          <strong className="text-ink">7. Dudas</strong> — Escribinos al{" "}
           <a className="text-accent underline" href={whatsappUrl()} target="_blank" rel="noreferrer">
             WhatsApp 11 3578-7669
           </a>
