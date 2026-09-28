@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/format";
-import { calcCashDiscount, CASH_DISCOUNT_PERCENT } from "@/lib/payment";
+import { calcTransferDiscount, TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
 
 export function CartDrawer() {
   const {
@@ -19,8 +19,8 @@ export function CartDrawer() {
     setPaymentMethod,
   } = useCart();
   const listTotal = subtotal();
-  const cashOff = calcCashDiscount(listTotal, paymentMethod);
-  const payable = Math.max(0, listTotal - cashOff);
+  const transferOff = calcTransferDiscount(listTotal, paymentMethod);
+  const payable = Math.max(0, listTotal - transferOff);
 
   if (!isOpen) return null;
 
@@ -109,10 +109,10 @@ export function CartDrawer() {
               <span>Subtotal</span>
               <span>{formatPrice(listTotal)}</span>
             </div>
-            {cashOff > 0 && (
+            {transferOff > 0 && (
               <div className="flex justify-between text-ink-soft">
-                <span>Dto. efectivo ({CASH_DISCOUNT_PERCENT}%)</span>
-                <span>-{formatPrice(cashOff)}</span>
+                <span>Dto. transferencia ({TRANSFER_DISCOUNT_PERCENT}%)</span>
+                <span>-{formatPrice(transferOff)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold">

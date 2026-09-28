@@ -1,22 +1,27 @@
 export const STORE_DISPLAY_NAME = "Accesorios Tortugas Online";
 
-/** Descuento por pago en efectivo sobre el precio de lista. */
-export const CASH_DISCOUNT_PERCENT = 5;
+/** Descuento por pago con transferencia sobre el precio de lista. */
+export const TRANSFER_DISCOUNT_PERCENT = 5;
 
-export type CheckoutPaymentMethod = "mercadopago" | "cash";
+export type CheckoutPaymentMethod = "mercadopago" | "transfer";
 
-export function calcCashDiscount(
+/** Acepta "cash" de carritos/pedidos anteriores y lo trata como transferencia. */
+export function normalizePaymentMethod(value: unknown): CheckoutPaymentMethod {
+  return value === "transfer" || value === "cash" ? "transfer" : "mercadopago";
+}
+
+export function calcTransferDiscount(
   subtotal: number,
   method: CheckoutPaymentMethod | string | undefined,
 ): number {
-  if (method !== "cash") return 0;
+  if (normalizePaymentMethod(method) !== "transfer") return 0;
   const base = Math.max(0, Number(subtotal) || 0);
-  return Math.round((base * CASH_DISCOUNT_PERCENT) / 100);
+  return Math.round((base * TRANSFER_DISCOUNT_PERCENT) / 100);
 }
 
-export function cashPrice(listPrice: number): number {
+export function transferPrice(listPrice: number): number {
   const price = Math.max(0, Number(listPrice) || 0);
-  return Math.max(0, Math.round(price * (1 - CASH_DISCOUNT_PERCENT / 100)));
+  return Math.max(0, Math.round(price * (1 - TRANSFER_DISCOUNT_PERCENT / 100)));
 }
 
 export function hasTransferPayment(settings: {

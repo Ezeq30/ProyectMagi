@@ -119,7 +119,7 @@ export default async function HomePage() {
             },
             {
               title: "Pago seguro",
-              body: "Mercado Pago o efectivo con 5% de descuento.",
+              body: "Mercado Pago o transferencia con 5% de descuento.",
             },
             {
               title: "Atención personalizada",

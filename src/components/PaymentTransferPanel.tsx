@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
-import { MERCADOPAGO_WEB_URL, STORE_DISPLAY_NAME } from "@/lib/payment";
+import {
+  STORE_DISPLAY_NAME,
+  TRANSFER_DISCOUNT_PERCENT,
+  type CheckoutPaymentMethod,
+} from "@/lib/payment";
 import { whatsappUrl } from "@/lib/whatsapp";
 
 type Props = {
@@ -13,7 +17,7 @@ type Props = {
   shippingCost: number;
   discount: number;
   shippingLabel?: string;
-  paymentMethod?: "mercadopago" | "cash";
+  paymentMethod?: CheckoutPaymentMethod;
   alias: string;
   cbu: string;
   holder: string;
@@ -22,6 +26,44 @@ type Props = {
   /** Si true, intenta abrir Checkout Pro al montar */
   autoStartMp?: boolean;
 };
+
+function CopyRow({
+  label,
+  value,
+  copied,
+  onCopy,
+  large,
+}: {
+  label: string;
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+  large?: boolean;
+}) {
+  return (
+    <div className="flex items-end justify-between gap-3 border-t border-line pt-4">
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+          {label}
+        </p>
+        <p
+          className={`mt-1 break-all font-semibold tracking-wide text-ink ${
+            large ? "text-lg sm:text-xl" : "text-base"
+          }`}
+        >
+          {value}
+        </p>
+      </div>
+      <button
+        type="button"
+        className="magi-btn magi-btn-outline shrink-0 px-3 py-2 text-xs"
+        onClick={onCopy}
+      >
+        {copied ? "Copiado" : "Copiar"}
+      </button>
+    </div>
+  );
+}
 
 export function PaymentTransferPanel({
   orderNumber,
@@ -45,29 +87,37 @@ export function PaymentTransferPanel({
   const [shareNote, setShareNote] = useState("");
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
-  const [manualOpen, setManualOpen] = useState(false);
   const autoStarted = useRef(false);
   const hasTransfer = Boolean(alias || cbu);
-  const payCash = paymentMethod === "cash";
+  const payTransfer = paymentMethod === "transfer";
+  const amountText = String(Math.round(total));
 
   const message = useMemo(
     () =>
       [
-        payCash
-          ? `Hola Magali! Quiero confirmar mi pedido en ${STORE_DISPLAY_NAME} pagando en efectivo.`
-          : `Hola Magali! Ya pagué mi compra en ${STORE_DISPLAY_NAME}.`,
+        `Hola Magali! Ya pagué mi compra en ${STORE_DISPLAY_NAME}.`,
         `Pedido: ${orderNumber}`,
         `Total: ${formatPrice(total)}`,
-        payCash ? "Forma de pago: efectivo (con 5% OFF)." : null,
-        !payCash && alias ? `Alias: ${alias}` : null,
+        payTransfer
+          ? `Pagué por transferencia (${TRANSFER_DISCOUNT_PERCENT}% OFF).`
+          : "Pagué con Mercado Pago.",
+        "Te adjunto / envío el comprobante.",
+      ].join("\n"),
+    [orderNumber, payTransfer, total],
+  );
+
+  const allTransferData = useMemo(
+    () =>
+      [
         holder ? `Titular: ${holder}` : null,
-        payCash
-          ? "Coordinemos entrega/retiro y el pago en efectivo."
-          : "Te adjunto / envío el comprobante.",
+        alias ? `Alias: ${alias}` : null,
+        cbu ? `CBU/CVU: ${cbu}` : null,
+        `Monto: ${formatPrice(total)}`,
+        `Pedido: ${orderNumber}`,
       ]
         .filter(Boolean)
         .join("\n"),
-    [alias, holder, orderNumber, payCash, total],
+    [alias, cbu, holder, orderNumber, total],
   );
 
   async function copy(value: string, label: string) {
@@ -91,10 +141,7 @@ export function PaymentTransferPanel({
       });
       const data = await res.json();
       if (!res.ok || !data.init_point) {
-        setPayError(
-          data.error ||
-            "No se pudo preparar el pago. Podés transferir por alias más abajo.",
-        );
+        setPayError(data.error || "No se pudo preparar el pago con Mercado Pago.");
         return;
       }
       window.location.href = data.init_point;
@@ -106,23 +153,11 @@ export function PaymentTransferPanel({
   }
 
   useEffect(() => {
-    if (!autoStartMp || payCash || !mpReady || autoStarted.current) return;
+    if (!autoStartMp || payTransfer || !mpReady || autoStarted.current) return;
     autoStarted.current = true;
     void payWithMercadoPago();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount
-  }, [autoStartMp, mpReady, payCash]);
-
-  async function openAppOnly() {
-    if (alias) {
-      try {
-        await navigator.clipboard.writeText(alias);
-        setCopied("alias");
-      } catch {
-        /* ignore */
-      }
-    }
-    window.open(MERCADOPAGO_WEB_URL, "_blank", "noopener,noreferrer");
-  }
+  }, [autoStartMp, mpReady, payTransfer]);
 
   async function shareReceipt() {
     setSharing(true);
@@ -150,19 +185,111 @@ export function PaymentTransferPanel({
     }
   }
 
+  const breakdown = (
+    <p className="mt-2 text-xs text-ink-soft">
+      Productos {formatPrice(subtotal)}
+      {discount > 0 ? ` · Desc. -${formatPrice(discount)}` : ""}
+      {" · "}
+      {shippingLabel ?? "Envío"}{" "}
+      {shippingCost > 0
+        ? formatPrice(shippingCost)
+        : shippingLabel?.toLowerCase().includes("coordinar")
+          ? "a coordinar"
+          : "gratis"}
+    </p>
+  );
+
   return (
     <div className="mx-auto max-w-lg px-4 py-10 sm:py-12">
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold">
-        {payCash ? "Pago en efectivo" : "Transferencia · Mercado Pago"}
+        {payTransfer
+          ? `Transferencia · ${TRANSFER_DISCOUNT_PERCENT}% OFF`
+          : "Mercado Pago"}
       </p>
       <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl sm:text-4xl">
-        {payCash ? "Pagá tu pedido" : "Transferí tu pago"}
+        {payTransfer ? "Transferí tu pago" : "Pagá tu pedido"}
       </h1>
       <p className="mt-2 text-ink-soft">
         Pedido <strong className="text-ink">{orderNumber}</strong>
       </p>
 
-      {!payCash && (
+      {!paid && payTransfer && (
+        <div className="mt-6 border border-line bg-card p-5 sm:p-6">
+          <p className="text-sm text-ink-soft">
+            Copiá los datos y transferí desde tu banco o billetera virtual el monto exacto.
+          </p>
+
+          {hasTransfer ? (
+            <div className="mt-5 space-y-4">
+              {holder ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+                    Titular
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-ink">{holder}</p>
+                </div>
+              ) : null}
+              {alias ? (
+                <CopyRow
+                  label="Alias"
+                  value={alias}
+                  large
+                  copied={copied === "alias"}
+                  onCopy={() => copy(alias, "alias")}
+                />
+              ) : null}
+              {cbu ? (
+                <CopyRow
+                  label="CBU / CVU"
+                  value={cbu}
+                  copied={copied === "cbu"}
+                  onCopy={() => copy(cbu, "cbu")}
+                />
+              ) : null}
+              <div className="flex items-end justify-between gap-3 border-t border-line pt-4">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
+                    Monto con {TRANSFER_DISCOUNT_PERCENT}% OFF
+                  </p>
+                  <p className="mt-1 font-[family-name:var(--font-display)] text-4xl tracking-tight text-ink">
+                    {formatPrice(total)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="magi-btn magi-btn-outline shrink-0 px-3 py-2 text-xs"
+                  onClick={() => copy(amountText, "amount")}
+                >
+                  {copied === "amount" ? "Copiado" : "Copiar"}
+                </button>
+              </div>
+              {breakdown}
+
+              <button
+                type="button"
+                className="magi-btn magi-btn-outline w-full justify-center"
+                onClick={() => copy(allTransferData, "all")}
+              >
+                {copied === "all" ? "Datos copiados" : "Copiar todos los datos"}
+              </button>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-red-700">
+              Los datos de transferencia no están cargados. Escribile a Magali por WhatsApp.
+            </p>
+          )}
+
+          <button
+            type="button"
+            className="magi-btn mt-6 w-full justify-center"
+            onClick={() => setPaid(true)}
+          >
+            Ya transferí — enviar comprobante
+          </button>
+        </div>
+      )}
+
+      {!paid && !payTransfer && (
         <div className="mt-6 border border-line bg-card p-5 sm:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
             Pagás a
@@ -174,26 +301,6 @@ export function PaymentTransferPanel({
             </p>
           ) : null}
 
-          {alias ? (
-            <div className="mt-5 flex items-end justify-between gap-3 border-t border-line pt-4">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
-                  Alias
-                </p>
-                <p className="mt-1 break-all text-lg font-semibold tracking-wide text-ink sm:text-xl">
-                  {alias}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="magi-btn magi-btn-outline shrink-0 px-3 py-2 text-xs"
-                onClick={() => copy(alias, "alias")}
-              >
-                {copied === "alias" ? "Copiado" : "Copiar"}
-              </button>
-            </div>
-          ) : null}
-
           <div className="mt-5 border-t border-line pt-4 text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-soft">
               Monto
@@ -201,20 +308,10 @@ export function PaymentTransferPanel({
             <p className="mt-2 font-[family-name:var(--font-display)] text-4xl tracking-tight text-ink sm:text-5xl">
               {formatPrice(total)}
             </p>
-            <p className="mt-2 text-xs text-ink-soft">
-              Productos {formatPrice(subtotal)}
-              {discount > 0 ? ` · Desc. -${formatPrice(discount)}` : ""}
-              {" · "}
-              {shippingLabel ?? "Envío"}{" "}
-              {shippingCost > 0
-                ? formatPrice(shippingCost)
-                : shippingLabel?.toLowerCase().includes("coordinar")
-                  ? "a coordinar"
-                  : "gratis"}
-            </p>
+            {breakdown}
           </div>
 
-          {mpReady && (
+          {mpReady ? (
             <div className="mt-6 space-y-3">
               <button
                 type="button"
@@ -222,9 +319,7 @@ export function PaymentTransferPanel({
                 disabled={paying}
                 onClick={payWithMercadoPago}
               >
-                {paying
-                  ? "Abriendo Mercado Pago…"
-                  : `Pagar ${formatPrice(total)}`}
+                {paying ? "Abriendo Mercado Pago…" : `Pagar ${formatPrice(total)}`}
               </button>
               <p className="text-center text-xs text-ink-soft">
                 Se abre Mercado Pago con el monto ya cargado. Solo elegís cómo pagar y
@@ -232,68 +327,10 @@ export function PaymentTransferPanel({
               </p>
               {payError && <p className="text-sm text-red-700">{payError}</p>}
             </div>
-          )}
-
-          {hasTransfer && (
-            <div className="mt-5 border-t border-line pt-4">
-              <button
-                type="button"
-                className="text-sm text-ink-soft underline-offset-4 hover:underline"
-                onClick={() => setManualOpen((v) => !v)}
-              >
-                {manualOpen
-                  ? "Ocultar transferencia manual"
-                  : "O transferí manual al alias"}
-              </button>
-              {manualOpen && (
-                <div className="mt-4 space-y-3">
-                  <p className="text-xs text-ink-soft">
-                    Copiá el alias, abrí Mercado Pago y transferí exactamente{" "}
-                    {formatPrice(total)}.
-                  </p>
-                  {cbu && (
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-ink-soft">
-                          CBU / CVU
-                        </p>
-                        <p className="mt-1 break-all font-semibold">{cbu}</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="magi-btn magi-btn-outline shrink-0 px-3 py-2 text-xs"
-                        onClick={() => copy(cbu, "cbu")}
-                      >
-                        {copied === "cbu" ? "Copiado" : "Copiar"}
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    className="magi-btn magi-btn-outline w-full"
-                    onClick={openAppOnly}
-                  >
-                    Abrir Mercado Pago (copia el alias)
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!mpReady && !hasTransfer && (
+          ) : (
             <p className="mt-4 text-sm text-red-700">
-              El pago aún no está configurado. Escribile a Magali por WhatsApp.
+              El pago online aún no está configurado. Escribile a Magali por WhatsApp.
             </p>
-          )}
-
-          {!mpReady && hasTransfer && (
-            <button
-              type="button"
-              className="magi-btn mt-6 w-full"
-              onClick={openAppOnly}
-            >
-              Abrir Mercado Pago y transferir {formatPrice(total)}
-            </button>
           )}
 
           <button
@@ -302,34 +339,6 @@ export function PaymentTransferPanel({
             onClick={() => setPaid(true)}
           >
             Ya pagué — enviar comprobante
-          </button>
-        </div>
-      )}
-
-      {payCash && !paid && (
-        <div className="mt-6 space-y-4 border border-line bg-card p-5">
-          <div className="border border-line bg-bg-deep/60 p-4">
-            <p className="text-xs uppercase tracking-wide text-ink-soft">Forma de pago</p>
-            <p className="mt-1 text-lg font-semibold text-ink">Efectivo · 5% OFF</p>
-            <p className="mt-2 text-sm text-ink-soft">
-              Total con descuento: <strong>{formatPrice(total)}</strong>. Coordiná con
-              Magali por WhatsApp.
-            </p>
-          </div>
-          <a
-            className="magi-btn w-full justify-center text-center"
-            href={whatsappUrl(message, whatsapp)}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Coordinar pago en efectivo por WhatsApp
-          </a>
-          <button
-            type="button"
-            className="magi-btn magi-btn-outline w-full"
-            onClick={() => setPaid(true)}
-          >
-            Ya coordiné / confirmar pedido
           </button>
         </div>
       )}

@@ -11,8 +11,8 @@ import {
 } from "@/lib/color-swatch";
 import { formatPrice } from "@/lib/format";
 import {
-  CASH_DISCOUNT_PERCENT,
-  cashPrice,
+  TRANSFER_DISCOUNT_PERCENT,
+  transferPrice,
   type CheckoutPaymentMethod,
 } from "@/lib/payment";
 import type { Product } from "@/lib/types";
@@ -41,14 +41,14 @@ export function AddToCartPanel({ product }: { product: Product }) {
   const stock = selected?.stock ?? product.stock;
   const out = stock <= 0;
   const mustPickColor = colorVariants.length > 0 && !selected;
-  const priceCash = cashPrice(product.price);
+  const priceTransfer = transferPrice(product.price);
   const cartImage = imageForColorVariant(
     product.images,
     selected,
     selectedIndex,
     "",
   );
-  const lineCash = cashPrice(product.price * qty);
+  const lineTransfer = transferPrice(product.price * qty);
 
   useEffect(() => {
     setQty(1);
@@ -70,8 +70,8 @@ export function AddToCartPanel({ product }: { product: Product }) {
           <p className="text-ink-soft line-through">{formatPrice(product.compare_at)}</p>
         )}
         <p className="mt-1 text-sm text-ink-soft">
-          En efectivo: <strong className="text-ink">{formatPrice(priceCash)}</strong>{" "}
-          ({CASH_DISCOUNT_PERCENT}% OFF)
+          Con transferencia: <strong className="text-ink">{formatPrice(priceTransfer)}</strong>{" "}
+          ({TRANSFER_DISCOUNT_PERCENT}% OFF)
         </p>
       </div>
 
@@ -152,8 +152,8 @@ export function AddToCartPanel({ product }: { product: Product }) {
       >
         {out
           ? "Sin stock"
-          : paymentMethod === "cash"
-            ? `Agregar ${qty} · efectivo ${formatPrice(lineCash)}`
+          : paymentMethod === "transfer"
+            ? `Agregar ${qty} · transferencia ${formatPrice(lineTransfer)}`
             : `Agregar ${qty} al carrito`}
       </button>
     </div>

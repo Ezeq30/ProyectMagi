@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  CASH_DISCOUNT_PERCENT,
+  TRANSFER_DISCOUNT_PERCENT,
   type CheckoutPaymentMethod,
 } from "@/lib/payment";
 
@@ -36,7 +36,7 @@ export function PaymentMethodPicker({ value, onChange, compact }: Props) {
               Mercado Pago (tarjetas vinculadas)
             </span>
             <span className="text-xs text-ink-soft">
-              Precio de lista. Visa, Mastercard, débito, transferencia o dinero en cuenta.
+              Precio de lista. Visa, Mastercard, débito o dinero en cuenta.
             </span>
           </span>
         </label>
@@ -49,16 +49,15 @@ export function PaymentMethodPicker({ value, onChange, compact }: Props) {
             type="radio"
             name="paymentMethod"
             className="mt-1"
-            checked={value === "cash"}
-            onChange={() => onChange("cash")}
+            checked={value === "transfer"}
+            onChange={() => onChange("transfer")}
           />
           <span>
             <span className="block text-sm font-medium">
-              Efectivo · {CASH_DISCOUNT_PERCENT}% OFF
+              Transferencia · {TRANSFER_DISCOUNT_PERCENT}% OFF
             </span>
             <span className="text-xs text-ink-soft">
-              Se aplica {CASH_DISCOUNT_PERCENT}% de descuento sobre el precio publicado.
-              Se coordina el pago con Magali.
+              Al confirmar te mostramos alias y CBU para copiar y transferir.
             </span>
           </span>
         </label>

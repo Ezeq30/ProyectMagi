@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/format";
-import { calcCashDiscount, CASH_DISCOUNT_PERCENT } from "@/lib/payment";
+import { calcTransferDiscount, TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
 
 export default function CartPage() {
   const {
@@ -17,8 +17,8 @@ export default function CartPage() {
     setPaymentMethod,
   } = useCart();
   const listTotal = subtotal();
-  const cashOff = calcCashDiscount(listTotal, paymentMethod);
-  const payable = Math.max(0, listTotal - cashOff);
+  const transferOff = calcTransferDiscount(listTotal, paymentMethod);
+  const payable = Math.max(0, listTotal - transferOff);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -92,9 +92,9 @@ export default function CartPage() {
             <p className="text-sm text-ink-soft">
               Subtotal: {formatPrice(listTotal)}
             </p>
-            {cashOff > 0 && (
+            {transferOff > 0 && (
               <p className="text-sm text-ink-soft">
-                Dto. efectivo ({CASH_DISCOUNT_PERCENT}%): -{formatPrice(cashOff)}
+                Dto. transferencia ({TRANSFER_DISCOUNT_PERCENT}%): -{formatPrice(transferOff)}
               </p>
             )}
             <p className="text-lg">

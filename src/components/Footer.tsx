@@ -68,7 +68,7 @@ export function Footer({ categories, settings }: Props) {
             </li>
           </ul>
           <p className="mt-5 text-sm text-ink-soft">
-            Mercado Pago o efectivo con 5% OFF.
+            Mercado Pago o transferencia con 5% OFF.
           </p>
         </div>
       </div>

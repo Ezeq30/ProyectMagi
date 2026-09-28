@@ -1,7 +1,7 @@
 import { PaymentMethodsStrip } from "@/components/PaymentMethodsStrip";
 import { formatPrice } from "@/lib/format";
 import { getSettings } from "@/lib/catalog";
-import { CASH_DISCOUNT_PERCENT } from "@/lib/payment";
+import { TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
 import { whatsappUrl } from "@/lib/whatsapp";
 
 export const metadata = { title: "Cómo comprar" };
@@ -14,7 +14,7 @@ export default async function HowToBuyPage() {
       <ol className="mt-8 space-y-5 text-ink-soft leading-relaxed">
         <li>
           <strong className="text-ink">1. Elegí tus productos</strong> — Navegá el catálogo y
-          agregalos al carrito. Al elegir, podés pagar con Mercado Pago o en efectivo.
+          agregalos al carrito. Al elegir, podés pagar con Mercado Pago o por transferencia.
         </li>
         <li>
           <strong className="text-ink">2. Completá el checkout</strong> — Ingresá tus datos y, si
@@ -22,12 +22,13 @@ export default async function HowToBuyPage() {
         </li>
         <li>
           <strong className="text-ink">3. Mercado Pago</strong> — Tarjetas vinculadas (Visa,
-          Mastercard, débito, etc.), transferencia o dinero en cuenta. Precio de lista.
+          Mastercard, débito, etc.) o dinero en cuenta. Precio de lista.
         </li>
         <li>
-          <strong className="text-ink">4. Efectivo · {CASH_DISCOUNT_PERCENT}% OFF</strong> — Si
-          pagás en efectivo, se aplica {CASH_DISCOUNT_PERCENT}% de descuento sobre el precio
-          publicado y coordinás el pago con Magali por WhatsApp.
+          <strong className="text-ink">4. Transferencia · {TRANSFER_DISCOUNT_PERCENT}% OFF</strong> —
+          Se aplica {TRANSFER_DISCOUNT_PERCENT}% de descuento sobre el precio publicado. Al
+          confirmar el pedido te mostramos alias y CBU para copiar, y después enviás el
+          comprobante por WhatsApp.
         </li>
         <li>
           <strong className="text-ink">5. Envío</strong> — El costo de envío se calcula en el

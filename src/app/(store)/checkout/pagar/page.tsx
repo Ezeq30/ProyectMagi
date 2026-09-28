@@ -21,10 +21,11 @@ export default async function CheckoutPayPage({ searchParams }: Props) {
   if (!order) notFound();
 
   const notesLower = order.notes.toLowerCase();
-  const payCash = notesLower.includes("pago: efectivo");
+  const payTransfer =
+    notesLower.includes("pago: transferencia") || notesLower.includes("pago: efectivo");
   const arrangeWithSeller = notesLower.includes("a coordinar con el vendedor");
 
-  const canPay = payCash || mpReady || hasTransferPayment(settings);
+  const canPay = payTransfer || mpReady || hasTransferPayment(settings);
   if (!canPay) notFound();
 
   return (
@@ -35,7 +36,7 @@ export default async function CheckoutPayPage({ searchParams }: Props) {
       shippingCost={order.shipping_cost}
       discount={order.discount}
       shippingLabel={arrangeWithSeller ? "Envío (a coordinar)" : "Envío"}
-      paymentMethod={payCash ? "cash" : "mercadopago"}
+      paymentMethod={payTransfer ? "transfer" : "mercadopago"}
       alias={settings.payment_alias}
       cbu={settings.payment_cbu}
       holder={settings.payment_holder}

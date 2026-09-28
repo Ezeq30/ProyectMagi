@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/format";
-import { CASH_DISCOUNT_PERCENT } from "@/lib/payment";
+import { TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
 
 type Quote = {
   shippingCost: number;
   discount: number;
-  cashDiscount?: number;
+  transferDiscount?: number;
   flatShipping: number;
   shippingMethod?: "delivery" | "seller_arrange";
 };
@@ -40,7 +40,7 @@ export default function CheckoutPage() {
   });
 
   const arrangeWithSeller = shippingMethod === "seller_arrange";
-  const payCash = paymentMethod === "cash";
+  const payTransfer = paymentMethod === "transfer";
 
   useEffect(() => {
     async function loadQuote() {
@@ -218,11 +218,7 @@ export default function CheckoutPage() {
               className="magi-input min-h-24"
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              placeholder={
-                arrangeWithSeller || payCash
-                  ? "Ej: prefiero retirar / pago en efectivo al entregar"
-                  : ""
-              }
+              placeholder={arrangeWithSeller ? "Ej: prefiero retirar el sábado" : ""}
             />
           </label>
 
@@ -231,13 +227,13 @@ export default function CheckoutPage() {
           <button type="submit" className="magi-btn" disabled={loading}>
             {loading
               ? "Procesando..."
-              : payCash
-                ? "Confirmar pedido (efectivo)"
+              : payTransfer
+                ? "Confirmar y ver datos de transferencia"
                 : "Confirmar y pagar"}
           </button>
           <p className="text-xs text-ink-soft">
-            {payCash
-              ? `Pago en efectivo con ${CASH_DISCOUNT_PERCENT}% de descuento. Coordinás con Magali por WhatsApp.`
+            {payTransfer
+              ? `Transferencia con ${TRANSFER_DISCOUNT_PERCENT}% de descuento. Al confirmar vas a ver alias y CBU para copiar.`
               : "Vas a pagar con Mercado Pago y después podés enviar el comprobante por WhatsApp."}
           </p>
         </form>
@@ -274,7 +270,7 @@ export default function CheckoutPage() {
           <div className="flex justify-between">
             <span>
               Descuento
-              {payCash ? ` (efectivo ${CASH_DISCOUNT_PERCENT}%)` : ""}
+              {payTransfer ? ` (transferencia ${TRANSFER_DISCOUNT_PERCENT}%)` : ""}
             </span>
             <span>-{formatPrice(quote?.discount ?? 0)}</span>
           </div>

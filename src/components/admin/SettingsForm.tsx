@@ -84,7 +84,7 @@ export function SettingsForm({
           <p className="text-sm font-semibold text-ink">Pago Mercado Pago</p>
           <p className="mt-1 text-xs text-ink-soft">
             Para cobrar el monto directo en la app, pegá el Access Token de producción de
-            Mercado Pago. Alias/CBU sirven para transferencia manual.
+            Mercado Pago. Alias, CBU y titular se muestran para pagar por transferencia.
           </p>
           <p className="mt-2 rounded-sm border border-line bg-card px-3 py-2 text-xs text-ink-soft">
             En cuentas nuevas, Mercado Pago puede retener el dinero ~14–18 días en las
@@ -123,13 +123,16 @@ export function SettingsForm({
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-ink-soft">Alias (Mercado Pago)</span>
+          <span className="mb-1 block text-ink-soft">Alias</span>
           <input
             className="magi-input"
             placeholder="ej: maitortugas.mp"
             value={form.payment_alias}
             onChange={(e) => setForm((f) => ({ ...f, payment_alias: e.target.value }))}
           />
+          <span className="mt-1 block text-xs text-ink-soft">
+            Se muestra al cliente que elige transferencia con 5% OFF.
+          </span>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block text-ink-soft">CBU / CVU</span>

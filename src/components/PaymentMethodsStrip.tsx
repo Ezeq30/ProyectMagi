@@ -1,4 +1,4 @@
-import { CASH_DISCOUNT_PERCENT } from "@/lib/payment";
+import { TRANSFER_DISCOUNT_PERCENT } from "@/lib/payment";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -89,15 +89,13 @@ function MercadoPagoIcon() {
   );
 }
 
-function CashIcon() {
+function TransferIcon() {
   return (
     <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-ink sm:text-xs">
-      <svg viewBox="0 0 24 24" className="h-4 w-4 text-accent" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8">
-        <rect x="2.5" y="6" width="19" height="12" rx="2" />
-        <circle cx="12" cy="12" r="2.5" />
-        <path d="M6 12h.01M18 12h.01" strokeLinecap="round" />
+      <svg viewBox="0 0 24 24" className="h-4 w-4 text-accent" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 8h14l-3-3M20 16H6l3 3" />
       </svg>
-      Efectivo
+      Transferencia
     </span>
   );
 }
@@ -133,7 +131,7 @@ export function PaymentMethodsStrip({
         <>
           <p className="text-sm font-medium text-ink">Medios de pago</p>
           <p className="mt-1 text-xs text-ink-soft">
-            Mercado Pago (tarjetas vinculadas) · Efectivo con {CASH_DISCOUNT_PERCENT}% OFF
+            Mercado Pago (tarjetas vinculadas) · Transferencia con {TRANSFER_DISCOUNT_PERCENT}% OFF
           </p>
         </>
       )}
@@ -157,8 +155,11 @@ export function PaymentMethodsStrip({
         <Badge label="Mercado Pago">
           <MercadoPagoIcon />
         </Badge>
-        <Badge label={`Efectivo ${CASH_DISCOUNT_PERCENT}% OFF`} title={`Efectivo · ${CASH_DISCOUNT_PERCENT}% OFF`}>
-          <CashIcon />
+        <Badge
+          label={`Transferencia ${TRANSFER_DISCOUNT_PERCENT}% OFF`}
+          title={`Transferencia · ${TRANSFER_DISCOUNT_PERCENT}% OFF`}
+        >
+          <TransferIcon />
         </Badge>
       </div>
       {(inverted || hideHeading) && (
@@ -167,7 +168,7 @@ export function PaymentMethodsStrip({
             inverted ? "text-[#d8d0c4]" : "text-ink-soft"
           }`}
         >
-          Efectivo: {CASH_DISCOUNT_PERCENT}% OFF sobre el precio publicado
+          Transferencia: {TRANSFER_DISCOUNT_PERCENT}% OFF sobre el precio publicado
         </p>
       )}
     </div>

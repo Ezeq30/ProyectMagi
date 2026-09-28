@@ -13,10 +13,10 @@ import {
   isMercadoPagoReady,
 } from "@/lib/mercadopago";
 import {
-  calcCashDiscount,
-  CASH_DISCOUNT_PERCENT,
+  calcTransferDiscount,
   hasTransferPayment,
-  type CheckoutPaymentMethod,
+  normalizePaymentMethod,
+  TRANSFER_DISCOUNT_PERCENT,
 } from "@/lib/payment";
 import { notifySellerOrder } from "@/lib/order-notify";
 import { createServerDataClient, hasServiceRole, useSupabaseData } from "@/lib/supabase/admin";
@@ -24,10 +24,6 @@ import type { CartItem, Order } from "@/lib/types";
 
 function parseShippingMethod(value: unknown): ShippingMethod {
   return value === "seller_arrange" ? "seller_arrange" : "delivery";
-}
-
-function parsePaymentMethod(value: unknown): CheckoutPaymentMethod {
-  return value === "cash" ? "cash" : "mercadopago";
 }
 
 export async function POST(request: Request) {
@@ -39,9 +35,9 @@ export async function POST(request: Request) {
     }
 
     const shippingMethod = parseShippingMethod(body.shippingMethod);
-    const paymentMethod = parsePaymentMethod(body.paymentMethod);
+    const paymentMethod = normalizePaymentMethod(body.paymentMethod);
     const arrangeWithSeller = shippingMethod === "seller_arrange";
-    const payCash = paymentMethod === "cash";
+    const payTransfer = paymentMethod === "transfer";
 
     const required = [
       "customer_name",
@@ -59,14 +55,22 @@ export async function POST(request: Request) {
     }
 
     const settings = await getSettings();
+    const transfer = hasTransferPayment(settings);
+    if (payTransfer && !transfer) {
+      return NextResponse.json(
+        { error: "La transferencia no está disponible por el momento" },
+        { status: 400 },
+      );
+    }
+
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const coupon = body.coupon ? await getCoupon(String(body.coupon)) : null;
-    const cashDiscount = calcCashDiscount(subtotal, paymentMethod);
-    const afterCash = Math.max(0, subtotal - cashDiscount);
-    const couponDiscount = calcDiscount(afterCash, coupon);
-    const discount = cashDiscount + couponDiscount;
+    const transferDiscount = calcTransferDiscount(subtotal, paymentMethod);
+    const afterTransfer = Math.max(0, subtotal - transferDiscount);
+    const couponDiscount = calcDiscount(afterTransfer, coupon);
+    const discount = transferDiscount + couponDiscount;
     const shippingCost = calcShipping(
-      Math.max(0, afterCash - couponDiscount),
+      Math.max(0, afterTransfer - couponDiscount),
       settings,
       shippingMethod,
     );
@@ -76,13 +80,11 @@ export async function POST(request: Request) {
     const orderNumber = `AT-${Date.now().toString().slice(-8)}`;
 
     const mpReady = await isMercadoPagoReady();
-    const transfer = hasTransferPayment(settings);
-    // Efectivo siempre tiene pantalla de pago (coordinar por WhatsApp)
-    const payPage = payCash || mpReady || transfer;
+    const payPage = payTransfer || mpReady || transfer;
 
     const userNotes = String(body.notes ?? "").trim();
-    const paymentNote = payCash
-      ? `Pago: efectivo (${CASH_DISCOUNT_PERCENT}% de descuento).`
+    const paymentNote = payTransfer
+      ? `Pago: transferencia (${TRANSFER_DISCOUNT_PERCENT}% de descuento).`
       : "Pago: Mercado Pago.";
     const shippingNote = arrangeWithSeller
       ? "Envío: a coordinar con el vendedor (sin cargo de envío)."
@@ -134,7 +136,7 @@ export async function POST(request: Request) {
     );
 
     let initPoint: string | null = null;
-    if (!payCash && mpReady) {
+    if (!payTransfer && mpReady) {
       try {
         const pref = await createPreferenceForOrder(order);
         initPoint = pref.init_point;
